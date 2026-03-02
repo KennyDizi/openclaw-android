@@ -285,7 +285,60 @@ OpenClaw 패키지, 패치, 환경변수, 임시 파일이 제거됩니다. Open
 3. **경로 변환** — 일반 Linux 경로(`/tmp`, `/bin/sh`, `/usr/bin/env`)를 Termux 경로로 자동 변환
 4. **임시 폴더 설정** — Android에서 접근 가능한 임시 폴더로 자동 설정
 5. **서비스 관리자 우회** — systemd 없이도 정상 동작하도록 설정
-6. **OpenCode 통합** — proot + ld.so 결합 방식으로 Bun 독립 실행 바이너리인 OpenCode + oh-my-opencode 설치
+6. **OpenCode 통합** — 선택 시, proot + ld.so 결합 방식으로 Bun 독립 실행 바이너리인 OpenCode + oh-my-opencode 설치
+
+## 설치 컴포넌트
+
+설치 스크립트는 여러 패키지 매니저를 통해 인프라, 플랫폼 패키지, 선택적 도구를 설치합니다. 핵심 인프라와 플랫폼 의존성은 자동으로 설치되고, 선택적 도구는 설치 중 개별적으로 선택할 수 있습니다.
+
+### 핵심 인프라 (항상 설치)
+
+| 컴포넌트 | 역할 | 설치 방식 |
+|----------|------|-----------|
+| git | 버전 관리, npm git 의존성 | `pkg install` |
+
+### 에이전트 플랫폼 런타임 의존성
+
+플랫폼의 `config.env` 플래그로 제어됩니다. OpenClaw의 경우 모두 설치됩니다:
+
+| 컴포넌트 | 역할 | 설치 방식 |
+|----------|------|-----------|
+| [pacman](https://wiki.archlinux.org/title/Pacman) | glibc 패키지 관리자 | `pkg install` |
+| [glibc-runner](https://github.com/termux-pacman/glibc-packages) | glibc 동적 링커 — 표준 Linux 바이너리를 Android에서 실행 | `pacman -Sy` |
+| [Node.js](https://nodejs.org/) v22 LTS (linux-arm64) | OpenClaw용 JavaScript 런타임 | nodejs.org에서 직접 다운로드 |
+| python | 네이티브 C/C++ 애드온 빌드 스크립트 (node-gyp) | `pkg install` |
+| make | 네이티브 모듈 Makefile 실행 | `pkg install` |
+| cmake | CMake 기반 네이티브 모듈 빌드 | `pkg install` |
+| clang | 네이티브 모듈용 C/C++ 컴파일러 | `pkg install` |
+| binutils | 네이티브 빌드용 바이너리 유틸리티 (llvm-ar) | `pkg install` |
+
+### OpenClaw 플랫폼
+
+| 컴포넌트 | 역할 | 설치 방식 |
+|----------|------|-----------|
+| [OpenClaw](https://github.com/openclaw/openclaw) | AI 에이전트 플랫폼 (핵심) | `npm install -g` |
+| [clawdhub](https://github.com/AidanPark/clawdhub) | OpenClaw 스킬 매니저 | `npm install -g` |
+| [PyYAML](https://pyyaml.org/) | `.skill` 패키징용 YAML 파서 | `pip install` |
+| libvips | sharp 빌드용 이미지 처리 헤더 | `pkg install` (업데이트 시) |
+
+### 선택적 도구 (설치 중 선택)
+
+각 도구는 개별 Y/n 프롬프트로 제공됩니다. 원하는 도구만 선택하여 설치할 수 있습니다.
+
+| 컴포넌트 | 역할 | 설치 방식 |
+|----------|------|-----------|
+| [tmux](https://github.com/tmux/tmux) | 백그라운드 세션용 터미널 멀티플렉서 | `pkg install` |
+| [ttyd](https://github.com/tsl0922/ttyd) | 웹 터미널 — 브라우저에서 Termux 접속 | `pkg install` |
+| [dufs](https://github.com/sigoden/dufs) | HTTP/WebDAV 파일 서버 | `pkg install` |
+| [android-tools](https://developer.android.com/tools/adb) | Phantom Process Killer 비활성화용 ADB | `pkg install` |
+| [code-server](https://github.com/coder/code-server) | 브라우저 기반 VS Code IDE | GitHub에서 직접 다운로드 |
+| [OpenCode](https://opencode.ai/) | AI 코딩 어시스턴트 (TUI) | `bun install -g` |
+| [oh-my-opencode](https://github.com/code-yeongyu/oh-my-opencode) | OpenCode 플러그인 프레임워크 | `bun install -g` |
+| [Bun](https://bun.sh/) | OpenCode용 JavaScript 런타임 | bun.sh에서 직접 다운로드 |
+| [proot](https://proot-me.github.io/) | syscall 가로체기 (Bun standalone 바이너리용) | `pkg install` |
+| [Claude Code](https://github.com/anthropics/claude-code) (Anthropic) | AI CLI 도구 | `npm install -g` |
+| [Gemini CLI](https://github.com/google-gemini/gemini-cli) (Google) | AI CLI 도구 | `npm install -g` |
+| [Codex CLI](https://github.com/openai/codex) (OpenAI) | AI CLI 도구 | `npm install -g` |
 
 ## 성능
 
@@ -318,31 +371,54 @@ OpenClaw은 [node-llama-cpp](https://github.com/withcatai/node-llama-cpp)를 통
 ```
 openclaw-android/
 ├── bootstrap.sh                # curl | bash 원라이너 설치 (다운로더)
-├── install.sh                  # 원클릭 설치 스크립트 (진입점)
+├── install.sh                  # 플랫폼 인식 설치 스크립트 (진입점)
 ├── oa.sh                       # 통합 CLI (설치 시 $PREFIX/bin/oa로 설치)
 ├── update.sh                   # Thin wrapper (update-core.sh 다운로드 후 실행)
 ├── update-core.sh              # 기존 설치 환경 경량 업데이터
-├── uninstall.sh                # 깔끔한 제거
+├── uninstall.sh                # 깔끔한 제거 (오케스트레이터)
 ├── patches/
 │   ├── glibc-compat.js        # Node.js 런타임 패치 (os.cpus, networkInterfaces)
 │   ├── argon2-stub.js          # argon2 네이티브 모듈용 JS 스텅 (code-server)
 │   ├── termux-compat.h         # Bionic 네이티브 빌드용 C 헤더 (sharp)
 │   ├── spawn.h                 # POSIX spawn 스텅 헤더
 │   ├── systemctl               # Termux용 systemd 스텅
-│   ├── patch-paths.sh          # OpenClaw 내 하드코딩 경로 수정
-│   └── apply-patches.sh        # 패치 오케스트레이터
+│   ├── apply-patches.sh        # 레거시 패치 오케스트레이터 (v1.0.2 호환)
+│   └── patch-paths.sh          # 레거시 경로 수정 (v1.0.2 호환)
 ├── scripts/
-│   ├── build-sharp.sh          # sharp 네이티브 모듈 빌드 (이미지 처리)
+│   ├── lib.sh                  # 공유 함수 라이브러리 (색상, 플랫폼 감지, 프롬프트)
 │   ├── check-env.sh            # 사전 환경 점검
+│   ├── install-infra-deps.sh   # 핵심 인프라 패키지 (L1)
+│   ├── install-glibc.sh        # glibc-runner 설치 (L2 조건부)
+│   ├── install-nodejs.sh       # Node.js glibc 래퍼 설치 (L2 조건부)
+│   ├── install-build-tools.sh  # 네이티브 모듈용 빌드 도구 (L2 조건부)
+│   ├── build-sharp.sh          # sharp 네이티브 모듈 빌드 (이미지 처리)
 │   ├── install-code-server.sh  # code-server 설치/업데이트 (브라우저 IDE)
-│   ├── install-deps.sh         # Termux 패키지 설치
-│   ├── install-glibc-env.sh    # glibc 환경 설치 (glibc-runner + Node.js)
 │   ├── install-opencode.sh     # OpenCode + oh-my-opencode 설치
-│   ├── install-ai-tools.sh     # AI CLI 도구 선택 설치
 │   ├── setup-env.sh            # 환경변수 설정
 │   └── setup-paths.sh          # 디렉토리 및 심볼릭 링크 생성
+├── platforms/
+│   ├── openclaw/               # OpenClaw 플랫폼 플러그인
+│   │   ├── config.env          # 플랫폼 메타데이터 및 의존성 선언
+│   │   ├── env.sh              # 플랫폼별 환경변수
+│   │   ├── install.sh          # 플랫폼 패키지 설치 (npm, 패치, clawdhub)
+│   │   ├── update.sh           # 플랫폼 패키지 업데이트
+│   │   ├── uninstall.sh        # 플랫폼 패키지 제거
+│   │   ├── status.sh           # 플랫폼 상태 표시
+│   │   ├── verify.sh           # 플랫폼 검증 체크
+│   │   └── patches/            # 플랫폼 전용 패치
+│   │       ├── openclaw-apply-patches.sh
+│   │       ├── openclaw-patch-paths.sh
+│   │       └── openclaw-build-sharp.sh
+│   └── zeroclaw/               # ZeroClaw 플랫폼 플러그인 (예시/템플릿)
+│       ├── config.env
+│       ├── env.sh
+│       ├── install.sh
+│       ├── update.sh
+│       ├── uninstall.sh
+│       ├── status.sh
+│       └── verify.sh
 ├── tests/
-│   └── verify-install.sh       # 설치 후 검증
+│   └── verify-install.sh       # 설치 후 검증 (오케스트레이터 + 플랫폼)
 └── docs/
     ├── termux-ssh-guide.md     # Termux SSH 접속 가이드 (영문)
     ├── termux-ssh-guide.ko.md  # Termux SSH 접속 가이드 (한국어)
@@ -351,11 +427,51 @@ openclaw-android/
     └── images/                 # 스크린샷 및 이미지
 ```
 
+## 아키텍처
+
+이 프로젝트는 **플랫폼 플러그인 아키텍처**를 사용하여 플랫폼 비종속 인프라와 플랫폼별 코드를 분리합니다:
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  오케스트레이터 (install.sh, update-core.sh, uninstall.sh) │
+│  ── 플랫폼 비종속. config.env를 읽고 위임.                │
+├─────────────────────────────────────────────────────────────┤
+│  공유 스크립트 (scripts/)                                  │
+│  ── L1: install-infra-deps.sh (항상 실행)                │
+│  ── L2: install-glibc.sh, install-nodejs.sh,              │
+│         install-build-tools.sh (config.env 조건부)       │
+│  ── L3: 선택적 도구 (사용자 선택)                        │
+├─────────────────────────────────────────────────────────────┤
+│  플랫폼 플러그인 (platforms/<name>/)                       │
+│  ── config.env: 의존성 선언 (PLATFORM_NEEDS_*)           │
+│  ── install.sh / update.sh / uninstall.sh / ...           │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**의존성 계층:**
+
+| 계층 | 범위 | 예시 | 제어 주체 |
+|------|------|------|-----------|
+| L1 | 인프라 (항상 설치) | git, `pkg update` | 오케스트레이터 |
+| L2 | 플랫폼 런타임 (조건부) | glibc, Node.js, 빌드 도구 | `config.env` 플래그 |
+| L3 | 선택적 도구 (사용자 선택) | tmux, code-server, AI CLI | 사용자 프롬프트 |
+
+각 플랫폼은 `config.env`에서 L2 의존성을 선언합니다:
+
+```bash
+# platforms/openclaw/config.env
+PLATFORM_NEEDS_GLIBC=true
+PLATFORM_NEEDS_NODEJS=true
+PLATFORM_NEEDS_BUILD_TOOLS=true
+```
+
+오케스트레이터는 이 플래그를 읽고 해당하는 설치 스크립트를 조건부로 실행합니다. glibc나 Node.js가 필요 없는 플랫폼(예: ZeroClaw)은 이 값을 `false`로 설정하면 무거운 의존성이 전부 스킵됩니다.
+
 ## 설치 흐름 상세
 
-`bash install.sh`를 실행하면 아래 11단계가 순서대로 실행됩니다.
+`bash install.sh`를 실행하면 아래 8단계가 순서대로 실행됩니다.
 
-### [1/11] 환경 체크 — `scripts/check-env.sh`
+### [1/8] 환경 체크 — `scripts/check-env.sh`
 
 설치를 시작하기 전에 현재 환경이 적합한지 검증합니다.
 
@@ -366,242 +482,183 @@ openclaw-android/
 - **Node.js 사전 확인**: 이미 설치된 Node.js가 있으면 버전을 표시하고, 22 미만이면 업그레이드 예고
 - **Phantom Process Killer** (Android 12+): Phantom Process Killer에 대한 안내 메시지와 [비활성화 가이드](docs/disable-phantom-process-killer.ko.md) 링크를 표시
 
-### [2/11] 패키지 설치 — `scripts/install-deps.sh`
+### [2/8] 플랫폼 선택
 
-OpenClaw 빌드 및 실행에 필요한 Termux 패키지를 설치합니다.
+설치할 플랫폼을 선택합니다. 현재는 `openclaw`으로 하드코딩되어 있습니다. 향후 여러 플랫폼이 제공되면 선택 UI가 추가될 예정입니다.
 
+`scripts/lib.sh`의 `load_platform_config()`를 통해 플랫폼의 `config.env`를 로드하여, 이후 단계에서 사용할 모든 `PLATFORM_*` 변수를 내보냅니다.
+
+### [3/8] 선택적 도구 선택 (L3)
+
+10개의 개별 Y/n 프롬프트(`/dev/tty` 사용)로 선택적 도구를 선택합니다:
+
+- tmux, ttyd, dufs, android-tools
+- code-server, OpenCode, oh-my-opencode (OpenCode 선택 시에만)
+- Claude Code, Gemini CLI, Codex CLI
+
+모든 선택은 설치 시작 전에 한 번에 수집됩니다. 사용자가 모든 결정을 마치면 설치 중 자리를 비울 수 있습니다.
+
+### [4/8] 핵심 인프라 (L1) — `scripts/install-infra-deps.sh` + `scripts/setup-paths.sh`
+
+플랫폼 선택과 무관하게 항상 실행됩니다.
+
+**install-infra-deps.sh:**
 - `pkg update -y && pkg upgrade -y`로 패키지 저장소 갱신 및 업그레이드
-- 다음 패키지를 일괄 설치:
+- `git` 설치 (npm git 의존성 및 저장소 클론에 필요)
 
-| 패키지 | 역할 | 필요한 이유 |
-|--------|------|------------|
-| `git` | 분산 버전 관리 시스템 | 일부 npm 패키지가 설치 과정에서 git 의존성을 가짐. 이 저장소 자체를 `git clone`으로 받을 때도 필요 |
-| `python` | Python 인터프리터 | `node-gyp`가 네이티브 C/C++ 애드온을 빌드할 때 Python을 빌드 스크립트 실행에 사용 |
-| `make` | 빌드 자동화 도구 | `node-gyp`가 생성한 Makefile을 실행하여 네이티브 모듈을 컴파일하는 데 사용 |
-| `cmake` | 크로스 플랫폼 빌드 시스템 | 일부 네이티브 모듈이 Makefile 대신 CMake 기반 빌드를 사용 |
-| `clang` | C/C++ 컴파일러 | Termux의 기본 C/C++ 컴파일러. `node-gyp`가 네이티브 모듈의 C/C++ 소스를 컴파일할 때 사용 |
-| `binutils` | 바이너리 유틸리티 (ar, strip 등) | 네이티브 모듈 빌드 시 정적 아카이브 생성에 필요한 `llvm-ar` 제공 |
-| `tmux` | 터미널 멀티플렉서 | OpenClaw 서버를 백그라운드 세션에서 실행할 수 있게 해줌 |
-| `ttyd` | 웹 터미널 | 터미널을 웹으로 공유하여 브라우저 기반 터미널 접속을 제공 |
-| `dufs` | HTTP/WebDAV 파일 서버 | 브라우저로 파일 업로드/다운로드를 제공 |
-| `android-tools` | Android Debug Bridge (adb) | Termux 내에서 Android의 Phantom Process Killer를 비활성화하는 데 사용 |
-| `pyyaml` (pip) | Python용 YAML 파서 | OpenClaw의 `.skill` 패키징에 필요 |
+**setup-paths.sh:**
+- `$PREFIX/tmp`와 `$HOME/.openclaw-android/patches` 디렉토리 생성
+- 표준 Linux 경로(`/bin/sh`, `/usr/bin/env`, `/tmp`)의 Termux 매핑 표시
 
-참고: Node.js는 여기서 설치하지 **않습니다** — 다음 단계에서 glibc linux-arm64 바이너리로 설치됩니다.
+### [5/8] 플랫폼 런타임 의존성 (L2)
 
-### [3/11] glibc 환경 — `scripts/install-glibc-env.sh`
+플랫폼의 `config.env` 플래그에 따라 런타임 의존성을 조건부로 설치합니다:
 
-표준 Linux 바이너리가 Android에서 실행될 수 있도록 glibc 런타임 환경을 설치합니다.
+| 플래그 | 스크립트 | 설치 내용 |
+|--------|----------|----------|
+| `PLATFORM_NEEDS_GLIBC=true` | `scripts/install-glibc.sh` | pacman, glibc-runner (`ld-linux-aarch64.so.1` 제공) |
+| `PLATFORM_NEEDS_NODEJS=true` | `scripts/install-nodejs.sh` | Node.js v22 LTS linux-arm64, grun 스타일 래퍼 스크립트 |
+| `PLATFORM_NEEDS_BUILD_TOOLS=true` | `scripts/install-build-tools.sh` | python, make, cmake, clang, binutils |
+| `PLATFORM_NEEDS_PROOT=true` | `pkg install proot` | proot (Bun 바이너리용 syscall 인터셉터) |
 
-1. `pacman`과 `proot` Termux 패키지 설치
-2. pacman을 초기화하고 Termux의 pacman 저장소에서 `glibc-runner` 설치 (glibc 동적 링커를 `$PREFIX/glibc/lib/ld-linux-aarch64.so.1`에 제공)
-3. nodejs.org에서 공식 Node.js v22 LTS (linux-arm64) 다운로드
-4. grun 스타일 래퍼 스크립트 생성: `node`가 `ld.so node.real "$@"`를 실행하는 bash 스크립트가 됨 (patchelf는 Android에서 seccomp으로 인해 segfault를 유발하므로 미사용)
-5. npm 설정 및 정상 동작 검증
-6. `.glibc-arch` 마커 파일 생성으로 아키텍처 식별
+각 스크립트는 사전 체크와 멱등성(이미 설치된 경우 스킵)을 갖춘 독립 실행형입니다.
 
-### [4/11] 경로 설정 — `scripts/setup-paths.sh`
+### [6/8] 플랫폼 패키지 설치 (L2) — `platforms/<platform>/install.sh`
 
-Termux에서 필요한 디렉토리 구조를 생성합니다.
+플랫폼 고유의 설치 스크립트에 위임합니다. OpenClaw의 경우:
 
-- `$PREFIX/tmp/openclaw` — OpenClaw 전용 임시 디렉토리 (`/tmp` 대체)
-- `$HOME/.openclaw-android/patches` — 패치 파일 저장 위치
-- `$HOME/.openclaw` — OpenClaw 데이터 디렉토리
-- 표준 Linux 경로(`/bin/sh`, `/usr/bin/env`, `/tmp`)가 Termux의 `$PREFIX` 하위 경로로 매핑되는 현황을 표시
+1. `CPATH`를 glib-2.0 헤더용으로 설정 (네이티브 모듈 빌드에 필요)
+2. pip으로 PyYAML 설치 (`.skill` 패키징용)
+3. `glibc-compat.js`를 `~/.openclaw-android/patches/`에 복사
+4. `systemctl` 스텅을 `$PREFIX/bin/`에 설치
+5. `npm install -g openclaw@latest --ignore-scripts` 실행
+6. `openclaw-apply-patches.sh`로 플랫폼별 패치 적용
+7. `clawdhub` (스킬 매니저) 및 필요 시 `undici` 의존성 설치
+8. `openclaw update` 실행 (sharp 등 네이티브 모듈 빌드 포함)
 
-### [5/11] 환경변수 설정 — `scripts/setup-env.sh`
+**[6.5] 환경변수 + CLI + 마커:**
 
-`~/.bashrc`에 환경변수 블록을 추가합니다.
+플랫폼 설치 후 오케스트레이터가:
+- `setup-env.sh`를 실행하여 `.bashrc` 환경변수 블록 작성
+- 플랫폼의 `env.sh`를 평가하여 플랫폼별 변수 설정
+- 플랫폼 마커 파일(`~/.openclaw-android/.platform`) 기록
+- `oa` CLI와 `oaupdate` 래퍼를 `$PREFIX/bin/`에 설치
+- `lib.sh`, `setup-env.sh`, 플랫폼 디렉토리를 `~/.openclaw-android/`에 복사 (업데이터와 언인스톨러가 사용)
 
-- `# >>> OpenClaw on Android >>>` / `# <<< OpenClaw on Android <<<` 마커로 블록을 감싸서 관리
-- 이미 블록이 존재하면 기존 블록을 제거하고 새로 추가 (중복 방지)
-- 설정되는 환경변수:
-  - `PATH` — glibc Node.js 디렉토리(`~/.openclaw-android/node/bin`)를 앞에 추가
-  - `TMPDIR=$PREFIX/tmp` — `/tmp` 대신 Termux 임시 디렉토리 사용
-  - `TMP`, `TEMP` — `TMPDIR`과 동일 (일부 도구 호환용)
-  - `CONTAINER=1` — systemd 존재 여부 확인을 우회
-  - `CLAWDHUB_WORKDIR="$HOME/.openclaw/workspace"` — clawdhub가 스킬을 기본 경로(`~/skills/`) 대신 OpenClaw workspace에 설치하도록 지정
-  - `OA_GLIBC=1` — glibc 기반 설치임을 표시
-- `ar → llvm-ar` 심볼릭 링크가 없으면 생성
+### [7/8] 선택적 도구 설치 (L3)
 
-glibc 아키텍처에서는 `NODE_OPTIONS`, `CFLAGS`, `CXXFLAGS`, `GYP_DEFINES`가 더 이상 필요하지 않습니다 — 이들은 이전 Bionic 아키텍처에서 필요했지만 표준 glibc 환경에서는 불필요합니다. `CPATH`는 여전히 설정되지만, 일부 네이티브 모듈 빌드에 필요한 glib-2.0 헤더용입니다 (이전 Bionic 전용 헤더와는 다릅니다).
+3단계에서 선택한 도구를 설치합니다:
 
-### [6/11] OpenClaw 설치 및 패치 — `npm install` + `patches/apply-patches.sh`
+- **Termux 패키지**: tmux, ttyd, dufs, android-tools — `pkg install`로 설치
+- **code-server**: 브라우저 기반 VS Code IDE. Termux 전용 워커라운드 포함 (번들 node 교체, argon2 패치, 하드 링크 실패 처리)
+- **OpenCode + oh-my-opencode**: AI 코딩 어시스턴트. proot + ld.so 결합 방식으로 Bun 독립 실행 바이너리 지원
+- **AI CLI 도구**: Claude Code, Gemini CLI, Codex CLI — `npm install -g`로 설치
 
-OpenClaw을 글로벌로 설치하고 Termux 호환 패치를 적용합니다.
+### [8/8] 검증 — `tests/verify-install.sh`
 
-1. `glibc-compat.js`를 `~/.openclaw-android/patches/`에 복사 — `os.cpus()` 폴백 (Android 커널이 0을 반환) 및 `os.networkInterfaces()` try-catch 래퍼 (Android에서 EACCES) 제공
-2. `oa.sh`를 `$PREFIX/bin/oa`로, `update.sh` wrapper를 `$PREFIX/bin/oaupdate`로 설치
-3. `npm install -g openclaw@latest` 실행
-4. `clawdhub` (스킬 매니저)를 `npm install -g clawdhub`로 글로벌 설치
-5. `patches/apply-patches.sh`가 패치를 일괄 적용:
-   - `glibc-compat.js`를 패치 디렉토리에 복사
-   - `systemctl` 스텅을 `$PREFIX/bin/systemctl`에 설치
-   - `patches/patch-paths.sh` 실행 — 설치된 OpenClaw JS 파일 내 하드코딩된 경로를 치환 (`/tmp`, `/bin/sh`, `/bin/bash`, `/usr/bin/env`)
-   - 패치 결과를 `~/.openclaw-android/patch.log`에 기록
+2단계 검증을 실행합니다:
 
-### [7/11] code-server 설치 — `scripts/install-code-server.sh`
-
-브라우저 기반 VS Code IDE인 code-server를 Termux 전용 워커라운드와 함께 설치합니다. 이 단계는 비필수 — 실패 시 경고만 출력하고 설치를 중단하지 않습니다.
-
-code-server standalone 릴리스는 glibc로 링크된 바이너리를 번들하며, Termux(Bionic libc)에서 직접 실행할 수 없습니다. 설치 스크립트는 세 가지 워커라운드를 적용합니다:
-
-1. **번들 node 교체** — 번들된 `lib/node` 바이너리를 Termux의 Node.js(`$PREFIX/bin/node`)에 대한 심볼릭 링크로 교체
-2. **argon2 네이티브 모듈 패치** — `argon2` 모듈이 glibc로 컴파일된 `.node` 바이너리를 포함. code-server가 `--auth none`으로 실행되므로 argon2는 호출되지 않음. 모듈 진입점을 `patches/argon2-stub.js` (JS 스텅)로 교체
-3. **하드 링크 실패 처리** — Android 파일시스템은 하드 링크를 지원하지 않음. tar 추출 실패를 무시하고 `.node` 파일을 `obj.target/` 디렉토리에서 `Release/`로 수동 복구
-
-설치 후 `code-server --auth none`으로 브라우저 IDE를 시작할 수 있습니다.
-
-### [8/11] OpenCode + oh-my-opencode — `scripts/install-opencode.sh`
-
-AI 코딩 어시스턴트인 OpenCode와 그 플러그인 프레임워크인 oh-my-opencode를 설치합니다. 이 단계는 비필수 — 실패 시 경고만 출력하고 설치를 중단하지 않습니다.
-
-OpenCode와 oh-my-opencode는 Bun 독립 실행 바이너리로, Android에서 특별한 처리가 필요합니다:
-
-1. **Bun은 raw syscall 사용** — `LD_PRELOAD` 심이 동작하지 않으므로 `proot`로 syscall을 가로체야 함
-2. **Bun은 `/proc/self/exe`로 내장 JS를 읽음** — `grun` 방식(`/proc/self/exe`가 `ld.so`를 가리킴)은 오프셋 계산을 깨트림. ld.so 결합 방식(바이너리 앞에 ld.so를 붙임)으로 올바른 오프셋을 유지
-
-설치 흐름:
-- `~/.openclaw-android/proot-root/`에 최소한의 proot rootfs 생성
-- 공식 인스톨러로 Bun 설치
-- Bun으로 `opencode-ai`와 `oh-my-opencode` 패키지 설치
-- ld.so 결합 파일 생성 (`$PREFIX/tmp/ld.so.opencode`, `$PREFIX/tmp/ld.so.omo`)
-- `$PREFIX/bin/opencode`와 `$PREFIX/bin/oh-my-opencode`에 proot 래퍼 스크립트 생성
-- oh-my-opencode 플러그인으로 OpenCode 설정 구성
-
-설치 후 `opencode`로 OpenCode를 시작할 수 있습니다.
-
-### [9/11] AI CLI 도구 (선택) — `scripts/install-ai-tools.sh`
-
-설치할 AI CLI 도구를 선택하는 대화형 체크박스 UI를 표시합니다.
-
-| 도구 | 패키지 | 제공사 |
-|------|---------|---------|
-| Claude Code | `@anthropic-ai/claude-code` | Anthropic |
-| Gemini CLI | `@google/gemini-cli` | Google |
-| Codex CLI | `@openai/codex` | OpenAI |
-
-화살표 키로 이동, Space로 토글, Enter로 확인합니다. 비대화형 모드(`curl | bash`)에서는 이 단계가 자동으로 건너뛰어집니다.
-
-### [10/11] 설치 검증 — `tests/verify-install.sh`
-
-설치가 정상적으로 완료되었는지 다음 항목을 확인합니다.
+**오케스트레이터 검증 (FAIL 레벨):**
 
 | 검증 항목 | PASS 조건 |
 |-----------|----------|
 | Node.js 버전 | `node -v` >= 22 |
 | npm | `npm` 명령어 존재 |
-| openclaw | `openclaw --version` 성공 |
 | TMPDIR | 환경변수 설정됨 |
-| CONTAINER | `1`로 설정됨 |
 | OA_GLIBC | `1`로 설정됨 |
 | glibc-compat.js | `~/.openclaw-android/patches/`에 파일 존재 |
-| .glibc-arch | `~/.openclaw-android/`에 마커 파일 존재 |
-| glibc 동적 링커 | `$PREFIX/glibc/lib/`에 `ld-linux-aarch64.so.1` 존재 |
+| .glibc-arch | 마커 파일 존재 |
+| glibc 동적 링커 | `ld-linux-aarch64.so.1` 존재 |
 | glibc node 래퍼 | `~/.openclaw-android/node/bin/node`에 래퍼 스크립트 존재 |
-| 디렉토리 | `~/.openclaw-android`, `~/.openclaw`, `$PREFIX/tmp` 존재 |
-| code-server | `code-server --version` 성공 (WARN 레벨, 비필수) |
-| opencode | `opencode` 명령어 존재 (WARN 레벨, 비필수) |
+| 디렉토리 | `~/.openclaw-android`, `$PREFIX/tmp` 존재 |
 | .bashrc | 환경변수 블록 포함 |
 
-모든 항목 통과 시 PASSED, 하나라도 실패 시 FAILED를 출력하고 재설치를 안내합니다. WARN 레벨 항목은 실패로 처리되지 않습니다.
+**오케스트레이터 검증 (WARN 레벨, 비필수):**
 
-### [11/11] OpenClaw 업데이트
+| 검증 항목 | PASS 조건 |
+|-----------|----------|
+| code-server | `code-server --version` 성공 |
+| opencode | `opencode` 명령어 존재 |
 
-`openclaw update`를 실행하여 최신 상태로 업데이트합니다. 완료 후 OpenClaw 버전을 출력하고 `openclaw onboard`로 설정을 시작하라는 안내를 표시합니다.
+**플랫폼 검증** — `platforms/<platform>/verify.sh`에 위임:
+
+| 검증 항목 | PASS 조건 |
+|-----------|----------|
+| openclaw | `openclaw --version` 성공 |
+| CONTAINER | `1`로 설정됨 |
+| clawdhub | 명령어 존재 |
+| ~/.openclaw | 디렉토리 존재 |
+
+모든 FAIL 레벨 항목 통과 시 PASSED. FAIL 발생 시 재설치 안내를 표시합니다. WARN 항목은 실패로 처리되지 않습니다.
 
 ## 경량 업데이터 흐름 — `oa --update`
 
-`oa --update` (또는 하위 호환을 위한 `oaupdate`)를 실행하면 GitHub에서 `update-core.sh`를 다운로드하여 아래 10단계를 순서대로 실행합니다. 전체 설치와 달리 환경 체크, 경로 설정, 검증을 생략하고 — 패치, 환경변수, 패키지 갱신에만 집중합니다.
+`oa --update` (또는 하위 호환을 위한 `oaupdate`)를 실행하면 GitHub에서 최신 릴리스 tarball을 다운로드하고 아래 5단계를 순서대로 실행합니다.
 
-### [1/10] 사전 점검
+### [1/5] 사전 점검
 
 업데이트를 위한 최소 조건을 확인합니다.
 
 - `$PREFIX` 존재 확인 (Termux 환경)
-- `openclaw` 명령 존재 확인 (이미 설치되어 있어야 함)
-- `curl` 사용 가능 여부 확인 (파일 다운로드에 필요)
+- `curl` 사용 가능 여부 확인
+- `~/.openclaw-android/.platform` 마커 파일에서 플랫폼 감지
 - 아키텍처 감지: glibc (`.glibc-arch` 마커) 또는 Bionic (레거시)
 - 구버전 디렉토리 마이그레이션 (`.openclaw-lite` → `.openclaw-android` — 레거시 호환)
 - **Phantom Process Killer** (Android 12+): [비활성화 가이드](docs/disable-phantom-process-killer.ko.md) 링크와 함께 안내 메시지를 표시
 
-### [2/10] 신규 패키지 설치
+### [2/5] 최신 릴리스 다운로드
 
-초기 설치 이후 추가된 패키지를 보충 설치합니다.
+GitHub에서 전체 저장소 tarball을 다운로드하고 임시 디렉토리에 추출합니다. 필수 파일의 존재를 확인합니다:
 
-- `ttyd` — 브라우저 기반 터미널 접속을 위한 웹 터미널. 이미 설치되어 있으면 스킵
-- `dufs` — 브라우저 기반 파일 관리를 위한 HTTP/WebDAV 파일 서버. 이미 설치되어 있으면 스킵
-- `android-tools` — Phantom Process Killer 비활성화용 ADB. 이미 설치되어 있으면 스킵
-- `PyYAML` — `.skill` 패키징용 YAML 파서. 이미 설치되어 있으면 스킵
+- `scripts/lib.sh`
+- `scripts/setup-env.sh`
+- `platforms/<platform>/config.env`
+- `platforms/<platform>/update.sh`
 
-모두 비필수 — 실패 시 경고만 출력하고 업데이트를 중단하지 않습니다.
+### [3/5] 핵심 인프라 업데이트
 
-### [3/10] 최신 스크립트 다운로드
+업데이터, 언인스톨러, CLI가 사용하는 공유 파일을 갱신합니다:
 
-GitHub에서 최신 패치 파일과 스크립트를 다운로드합니다.
+- 최신 플랫폼 디렉토리를 `~/.openclaw-android/platforms/`에 복사
+- `~/.openclaw-android/scripts/`의 `lib.sh`와 `setup-env.sh` 갱신
+- 패치 파일 갱신 (`glibc-compat.js`, `argon2-stub.js`, `spawn.h`, `systemctl`)
+- `$PREFIX/bin/`의 `oa` CLI와 `oaupdate` 래퍼 갱신
+- `~/.openclaw-android/`의 `uninstall.sh` 갱신
+- Bionic 아키텍처가 감지되면 자동 glibc 마이그레이션 수행
+- `setup-env.sh`를 실행하여 `.bashrc` 환경변수 블록 갱신
 
-| 파일 | 용도 | 실패 시 |
-|------|------|---------|
-| `setup-env.sh` | `.bashrc` 환경변수 블록 갱신 | **종료** (필수) |
-| `glibc-compat.js` | Node.js 런타임 호환 패치 | 경고 |
-| `spawn.h` | POSIX spawn 스텅 (이미 있으면 스킵) | 경고 |
-| `argon2-stub.js` | argon2 네이티브 모듈용 JS 스텅 (code-server) | 경고 |
-| `systemctl` | Termux용 systemd 스텅 | 경고 |
-| `oa.sh` | 통합 CLI (`oa` 명령어) | 경고 |
-| `install-code-server.sh` | code-server 설치/업데이트 스크립트 | 경고 |
-| `build-sharp.sh` | sharp 네이티브 모듈 빌드 스크립트 | 경고 |
-| `install-glibc-env.sh` | glibc 환경 설치 (마이그레이션용) | 경고 |
-| `install-opencode.sh` | OpenCode + oh-my-opencode 설치 | 경고 |
+### [4/5] 플랫폼 업데이트
 
-`setup-env.sh`만 필수 — 나머지는 모두 실패해도 비필수입니다.
+`platforms/<platform>/update.sh`에 위임합니다. OpenClaw의 경우:
 
-### [4/10] 환경변수 갱신
+- 빌드 의존성 설치 (`libvips`, `binutils`)
+- `openclaw` npm 패키지를 최신 버전으로 업데이트
+- 플랫폼별 패치 재적용
+- openclaw이 업데이트된 경우 sharp 네이티브 모듈 재빌드
+- `clawdhub` (스킬 매니저) 업데이트/설치
+- 필요 시 clawdhub용 `undici` 설치 (Node.js v24+)
+- 필요 시 `~/skills/`에서 `~/.openclaw/workspace/skills/`로 스킬 마이그레이션
+- PyYAML 누락 시 설치
 
-다운로드한 `setup-env.sh`를 실행하여 `.bashrc` 환경변수 블록을 최신 내용으로 갱신합니다. Bionic(v1.0.0 이전) 설치로 감지되면 자동으로 glibc 아키텍처로 마이그레이션을 수행합니다 — glibc-runner 설치, Node.js 다운로드, 래퍼 스크립트 생성을 포함합니다.
+### [5/5] 선택적 도구 업데이트
 
-### [5/10] OpenClaw 패키지 업데이트
+이미 설치된 도구만 업데이트합니다:
 
-- 빌드 의존성 설치: `libvips` (sharp용)와 `binutils` (네이티브 빌드용)
-- `ar → llvm-ar` 심볼릭 링크가 없으면 생성
-- `npm install -g openclaw@latest` 실행
-- 실패 시 경고만 출력하고 계속 진행
-
-### [6/10] sharp 빌드 (이미지 처리)
-
-`build-sharp.sh`를 실행하여 sharp 네이티브 모듈을 빌드합니다. Step 5의 `npm install`에서 이미 성공적으로 컴파일되었으면 이 단계에서 감지하고 rebuild를 건너뛱니다.
-
-### [7/10] clawdhub 설치/갱신 (스킬 매니저)
-
-OpenClaw 스킬을 검색하고 설치하는 CLI 도구인 `clawdhub`를 설치하거나 갱신합니다.
-
-- `clawdhub`가 설치되지 않은 경우 `npm install -g clawdhub`로 설치
-- Node.js v24+ Termux 환경에서는 `undici` 패키지가 Node.js에 번들되지 않음. `undici`가 누락된 경우 clawdhub 디렉토리에 직접 설치
-- `CLAWDHUB_WORKDIR` 설정 전에 `~/skills/`에 설치된 스킬이 있으면 `~/.openclaw/workspace/skills/`로 자동 마이그레이션
-- 모두 비필수 — 실패 시 경고만 출력
-
-### [8/10] code-server 업데이트 (IDE)
-
-`install-code-server.sh`를 `update` 모드로 실행하여 code-server를 설치하거나 업데이트합니다. 이미 설치되어 있고 최신 상태면 이 단계는 스킵됩니다. 비필수 — 실패 시 경고만 출력.
-
-### [9/10] AI CLI 도구 업데이트
-
-설치된 AI CLI 도구 (Claude Code, Gemini CLI, Codex CLI)를 감지하고 최신 버전으로 업데이트합니다. 설치된 버전과 최신 npm 버전을 비교하여 — 이미 최신이면 스킵합니다. 설치되지 않은 도구는 설치를 제안하지 않습니다 (전체 설치를 사용하세요). 모두 비필수.
-
-### [10/10] OpenCode + oh-my-opencode 업데이트
-
-이미 설치된 경우 OpenCode와 oh-my-opencode를 자동으로 업데이트합니다. 설치되지 않은 경우 설치 여부를 물어봅니다 (기본값: 스킵). glibc 아키텍처가 필요하며, 마이그레이션에 실패한 Bionic 설치에서는 스킵됩니다. 비필수.
+- **code-server**: `install-code-server.sh`를 update 모드로 실행. 미설치 시 스킵
+- **OpenCode + oh-my-opencode**: 설치된 경우 업데이트, 미설치 시 설치 여부 문의. glibc 아키텍처 필요
+- **AI CLI 도구** (Claude Code, Gemini CLI, Codex CLI): 설치된 버전과 최신 npm 버전을 비교하여 필요 시 업데이트. 미설치 도구는 설치를 제안하지 않음
 
 </details>
 
 ## 추가 설치 옵션
 
-설치 스크립트에는 다음의 추가 컴포넌트가 포함되어 있습니다. 일부는 자동으로 설치되고, 나머지는 설치 과정에서 선택할 수 있습니다. `oa --update`와 `oa --uninstall`로 나중에 관리할 수도 있습니다.
+설치 스크립트에는 다음의 추가 컴포넌트가 포함되어 있습니다. 모두 설치 과정에서 개별 Y/n 프롬프트로 선택할 수 있습니다. `oa --update`와 `oa --uninstall`로 나중에 관리할 수도 있습니다.
 
 | 도구 | 설명 | 설치 |
 |------|------|------|
-| [code-server](https://github.com/coder/code-server) | 브라우저 기반 VS Code IDE | 설치에 포함 (자동 설치) |
-| [ttyd](https://github.com/tsl0922/ttyd) | 웹 터미널 — 브라우저에서 Termux 접속 | 설치에 포함 (자동 설치) |
-| [dufs](https://github.com/sigoden/dufs) | 파일 서버 — 브라우저로 파일 업로드/다운로드 | 설치에 포함 (자동 설치) |
+| [code-server](https://github.com/coder/code-server) | 브라우저 기반 VS Code IDE | 설치 중 선택 |
+| [ttyd](https://github.com/tsl0922/ttyd) | 웹 터미널 — 브라우저에서 Termux 접속 | 설치 중 선택 |
+| [dufs](https://github.com/sigoden/dufs) | 파일 서버 — 브라우저로 파일 업로드/다운로드 | 설치 중 선택 |
 | [OpenCode](https://opencode.ai/) | AI 코딩 어시스턴트 (TUI) | 설치 중 선택 |
 | [oh-my-opencode](https://github.com/code-yeongyu/oh-my-opencode) | OpenCode 플러그인 프레임워크 | 설치 중 선택 (OpenCode와 함께) |
 | [Claude Code](https://github.com/anthropics/claude-code) (Anthropic) | AI CLI 도구 | 설치 중 선택 |

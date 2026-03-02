@@ -285,7 +285,60 @@ The installer automatically resolves the differences between Termux and standard
 3. **Path conversion** — Automatically converts standard Linux paths (`/tmp`, `/bin/sh`, `/usr/bin/env`) to Termux paths
 4. **Temp folder setup** — Configures an accessible temp folder for Android
 5. **Service manager bypass** — Configures normal operation without systemd
-6. **OpenCode integration** — Installs OpenCode + oh-my-opencode using proot + ld.so concatenation for Bun standalone binaries
+6. **OpenCode integration** — If selected, installs OpenCode + oh-my-opencode using proot + ld.so concatenation for Bun standalone binaries
+
+## Installed Components
+
+The installer sets up infrastructure, platform packages, and optional tools across multiple package managers. Core infrastructure and platform dependencies are installed automatically; optional tools are individually prompted during install.
+
+### Core Infrastructure 
+
+| Component | Role | Install Method |
+|-----------|------|----------------|
+| git | Version control, npm git dependencies | `pkg install` |
+
+### Agent Platform Runtime Dependencies
+
+These are controlled by the platform's `config.env` flags. For OpenClaw, all are installed:
+
+| Component | Role | Install Method |
+|-----------|------|----------------|
+| [pacman](https://wiki.archlinux.org/title/Pacman) | Package manager for glibc packages | `pkg install` |
+| [glibc-runner](https://github.com/termux-pacman/glibc-packages) | glibc dynamic linker — enables standard Linux binaries on Android | `pacman -Sy` |
+| [Node.js](https://nodejs.org/) v22 LTS (linux-arm64) | JavaScript runtime for OpenClaw | Direct download from nodejs.org |
+| python | Build scripts for native C/C++ addons (node-gyp) | `pkg install` |
+| make | Makefile execution for native modules | `pkg install` |
+| cmake | CMake-based native module builds | `pkg install` |
+| clang | C/C++ compiler for native modules | `pkg install` |
+| binutils | Binary utilities (llvm-ar) for native builds | `pkg install` |
+
+### OpenClaw Platform 
+
+| Component | Role | Install Method |
+|-----------|------|----------------|
+| [OpenClaw](https://github.com/openclaw/openclaw) | AI agent platform (core) | `npm install -g` |
+| [clawdhub](https://github.com/AidanPark/clawdhub) | Skill manager for OpenClaw | `npm install -g` |
+| [PyYAML](https://pyyaml.org/) | YAML parser for `.skill` packaging | `pip install` |
+| libvips | Image processing headers for sharp build | `pkg install` (on update) |
+
+### Optional Tools (prompted during install)
+
+Each tool is offered via an individual Y/n prompt. You choose which ones to install.
+
+| Component | Role | Install Method |
+|-----------|------|----------------|
+| [tmux](https://github.com/tmux/tmux) | Terminal multiplexer for background sessions | `pkg install` |
+| [ttyd](https://github.com/tsl0922/ttyd) | Web terminal — access Termux from a browser | `pkg install` |
+| [dufs](https://github.com/sigoden/dufs) | HTTP/WebDAV file server for browser-based file transfer | `pkg install` |
+| [android-tools](https://developer.android.com/tools/adb) | ADB for disabling Phantom Process Killer | `pkg install` |
+| [code-server](https://github.com/coder/code-server) | Browser-based VS Code IDE | Direct download from GitHub |
+| [OpenCode](https://opencode.ai/) | AI coding assistant (TUI) | `bun install -g` |
+| [oh-my-opencode](https://github.com/code-yeongyu/oh-my-opencode) | Plugin framework for OpenCode | `bun install -g` |
+| [Bun](https://bun.sh/) | JavaScript runtime for OpenCode | Direct download from bun.sh |
+| [proot](https://proot-me.github.io/) | Syscall interceptor (for Bun standalone binaries) | `pkg install` |
+| [Claude Code](https://github.com/anthropics/claude-code) (Anthropic) | AI CLI tool | `npm install -g` |
+| [Gemini CLI](https://github.com/google-gemini/gemini-cli) (Google) | AI CLI tool | `npm install -g` |
+| [Codex CLI](https://github.com/openai/codex) (OpenAI) | AI CLI tool | `npm install -g` |
 
 ## Performance
 
@@ -318,31 +371,54 @@ For experimentation, small models like TinyLlama 1.1B (Q4, ~670MB) can run on th
 ```
 openclaw-android/
 ├── bootstrap.sh                # curl | bash one-liner installer (downloader)
-├── install.sh                  # One-click installer (entry point)
+├── install.sh                  # Platform-aware installer (entry point)
 ├── oa.sh                       # Unified CLI (installed as $PREFIX/bin/oa)
 ├── update.sh                   # Thin wrapper (downloads and runs update-core.sh)
 ├── update-core.sh              # Lightweight updater for existing installations
-├── uninstall.sh                # Clean removal
+├── uninstall.sh                # Clean removal (orchestrator)
 ├── patches/
 │   ├── glibc-compat.js        # Node.js runtime patches (os.cpus, networkInterfaces)
 │   ├── argon2-stub.js          # JS stub for argon2 native module (code-server)
 │   ├── termux-compat.h         # C header for Bionic native builds (sharp)
 │   ├── spawn.h                 # POSIX spawn stub header
 │   ├── systemctl               # systemd stub for Termux
-│   ├── patch-paths.sh          # Fix hardcoded paths in OpenClaw
-│   └── apply-patches.sh        # Patch orchestrator
+│   ├── apply-patches.sh        # Legacy patch orchestrator (v1.0.2 compat)
+│   └── patch-paths.sh          # Legacy path fixer (v1.0.2 compat)
 ├── scripts/
-│   ├── build-sharp.sh          # Build sharp native module (image processing)
+│   ├── lib.sh                  # Shared function library (colors, platform detection, prompts)
 │   ├── check-env.sh            # Pre-flight environment check
+│   ├── install-infra-deps.sh   # Core infrastructure packages (L1)
+│   ├── install-glibc.sh        # glibc-runner installation (L2 conditional)
+│   ├── install-nodejs.sh       # Node.js glibc wrapper installation (L2 conditional)
+│   ├── install-build-tools.sh  # Build tools for native modules (L2 conditional)
+│   ├── build-sharp.sh          # Build sharp native module (image processing)
 │   ├── install-code-server.sh  # Install/update code-server (browser IDE)
-│   ├── install-deps.sh         # Install Termux packages
-│   ├── install-glibc-env.sh    # Install glibc environment (glibc-runner + Node.js)
 │   ├── install-opencode.sh     # Install OpenCode + oh-my-opencode
-│   ├── install-ai-tools.sh     # Interactive AI CLI tool selector
 │   ├── setup-env.sh            # Configure environment variables
 │   └── setup-paths.sh          # Create directories and symlinks
+├── platforms/
+│   ├── openclaw/               # OpenClaw platform plugin
+│   │   ├── config.env          # Platform metadata and dependency declarations
+│   │   ├── env.sh              # Platform-specific environment variables
+│   │   ├── install.sh          # Platform package install (npm, patches, clawdhub)
+│   │   ├── update.sh           # Platform package update
+│   │   ├── uninstall.sh        # Platform package removal
+│   │   ├── status.sh           # Platform status display
+│   │   ├── verify.sh           # Platform verification checks
+│   │   └── patches/            # Platform-specific patches
+│   │       ├── openclaw-apply-patches.sh
+│   │       ├── openclaw-patch-paths.sh
+│   │       └── openclaw-build-sharp.sh
+│   └── zeroclaw/               # ZeroClaw platform plugin (example/template)
+│       ├── config.env
+│       ├── env.sh
+│       ├── install.sh
+│       ├── update.sh
+│       ├── uninstall.sh
+│       ├── status.sh
+│       └── verify.sh
 ├── tests/
-│   └── verify-install.sh       # Post-install verification
+│   └── verify-install.sh       # Post-install verification (orchestrator + platform)
 └── docs/
     ├── termux-ssh-guide.md     # Termux SSH setup guide (EN)
     ├── termux-ssh-guide.ko.md  # Termux SSH setup guide (KO)
@@ -351,11 +427,51 @@ openclaw-android/
     └── images/                 # Screenshots and images
 ```
 
+## Architecture
+
+The project uses a **platform-plugin architecture** that separates platform-agnostic infrastructure from platform-specific code:
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  Orchestrators (install.sh, update-core.sh, uninstall.sh)  │
+│  ── Platform-agnostic. Read config.env and delegate.       │
+├─────────────────────────────────────────────────────────────┤
+│  Shared Scripts (scripts/)                                  │
+│  ── L1: install-infra-deps.sh (always)                     │
+│  ── L2: install-glibc.sh, install-nodejs.sh,               │
+│         install-build-tools.sh (conditional on config.env) │
+│  ── L3: Optional tools (user-selected)                     │
+├─────────────────────────────────────────────────────────────┤
+│  Platform Plugins (platforms/<name>/)                       │
+│  ── config.env: declares dependencies (PLATFORM_NEEDS_*)  │
+│  ── install.sh / update.sh / uninstall.sh / ...            │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**Dependency layers:**
+
+| Layer | Scope | Examples | Controlled by |
+|-------|-------|----------|---------------|
+| L1 | Infrastructure (always installed) | git, `pkg update` | Orchestrator |
+| L2 | Platform runtime (conditional) | glibc, Node.js, build tools | `config.env` flags |
+| L3 | Optional tools (user-selected) | tmux, code-server, AI CLIs | User prompts |
+
+Each platform declares its L2 dependencies in `config.env`:
+
+```bash
+# platforms/openclaw/config.env
+PLATFORM_NEEDS_GLIBC=true
+PLATFORM_NEEDS_NODEJS=true
+PLATFORM_NEEDS_BUILD_TOOLS=true
+```
+
+The orchestrator reads these flags and conditionally runs the corresponding install scripts. A platform that doesn't need glibc or Node.js (like ZeroClaw) simply sets these to `false` and the heavy dependencies are skipped entirely.
+
 ## Detailed Installation Flow
 
-Running `bash install.sh` executes the following 11 steps in order.
+Running `bash install.sh` executes the following 8 steps in order.
 
-### [1/11] Environment Check — `scripts/check-env.sh`
+### [1/8] Environment Check — `scripts/check-env.sh`
 
 Validates that the current environment is suitable before starting installation.
 
@@ -366,252 +482,183 @@ Validates that the current environment is suitable before starting installation.
 - **Node.js pre-check**: If Node.js is already installed, shows version and warns if below 22
 - **Phantom Process Killer** (Android 12+): Shows an informational note about the Phantom Process Killer with a link to the [disable guide](docs/disable-phantom-process-killer.md)
 
-### [2/11] Base Dependencies — `scripts/install-deps.sh`
+### [2/8] Platform Selection
 
-Installs Termux packages required for building and running OpenClaw.
+Selects the platform to install. Currently hardcoded to `openclaw`. Future versions will present a selection UI when multiple platforms are available.
 
+Loads the platform's `config.env` via `load_platform_config()` from `scripts/lib.sh`, which exports all `PLATFORM_*` variables for use by subsequent steps.
+
+### [3/8] Optional Tools Selection (L3)
+
+Presents 10 individual Y/n prompts (via `/dev/tty`) for optional tools:
+
+- tmux, ttyd, dufs, android-tools
+- code-server, OpenCode, oh-my-opencode (only if OpenCode selected)
+- Claude Code, Gemini CLI, Codex CLI
+
+All selections are collected upfront before any installation begins. This allows the user to make all decisions at once and walk away during the install.
+
+### [4/8] Core Infrastructure (L1) — `scripts/install-infra-deps.sh` + `scripts/setup-paths.sh`
+
+Always runs regardless of platform selection.
+
+**install-infra-deps.sh:**
 - Runs `pkg update -y && pkg upgrade -y` to refresh and upgrade packages
-- Installs the following packages:
+- Installs `git` (required for npm git dependencies and repo cloning)
 
-| Package | Role | Why It's Needed |
-|---------|------|-----------------|
-| `git` | Distributed version control | Some npm packages have git dependencies. Also needed if installing this repo via `git clone` |
-| `python` | Python interpreter | Used by `node-gyp` to run build scripts when compiling native C/C++ addons |
-| `make` | Build automation tool | Executes Makefiles generated by `node-gyp` to compile native modules |
-| `cmake` | Cross-platform build system | Some native modules use CMake-based builds instead of Makefiles |
-| `clang` | C/C++ compiler | Default C/C++ compiler in Termux. Used by `node-gyp` to compile native modules |
-| `binutils` | Binary utilities (ar, strip, etc.) | Provides `llvm-ar` for creating static archives during native module builds |
-| `tmux` | Terminal multiplexer | Allows running the OpenClaw server in a background session |
-| `ttyd` | Web terminal | Shares a terminal over the web for browser-based terminal access |
-| `dufs` | HTTP/WebDAV file server | Provides file upload/download via browser |
-| `android-tools` | Android Debug Bridge (adb) | Used to disable Android's Phantom Process Killer from within Termux |
-| `pyyaml` (pip) | YAML parser for Python | Required for `.skill` packaging in OpenClaw |
+**setup-paths.sh:**
+- Creates `$PREFIX/tmp` and `$HOME/.openclaw-android/patches` directories
+- Displays standard Linux path mappings (`/bin/sh`, `/usr/bin/env`, `/tmp`) to Termux equivalents
 
-Note: Node.js is **not** installed here — it is installed as a glibc linux-arm64 binary in the next step.
+### [5/8] Platform Runtime Dependencies (L2)
 
-### [3/11] glibc Environment — `scripts/install-glibc-env.sh`
+Conditionally installs runtime dependencies based on the platform's `config.env` flags:
 
-Installs the glibc runtime environment that allows standard Linux binaries to run on Android.
+| Flag | Script | What it installs |
+|------|--------|-----------------|
+| `PLATFORM_NEEDS_GLIBC=true` | `scripts/install-glibc.sh` | pacman, glibc-runner (provides `ld-linux-aarch64.so.1`) |
+| `PLATFORM_NEEDS_NODEJS=true` | `scripts/install-nodejs.sh` | Node.js v22 LTS linux-arm64, grun-style wrapper scripts |
+| `PLATFORM_NEEDS_BUILD_TOOLS=true` | `scripts/install-build-tools.sh` | python, make, cmake, clang, binutils |
+| `PLATFORM_NEEDS_PROOT=true` | `pkg install proot` | proot (syscall interceptor for Bun binaries) |
 
-1. Installs `pacman` and `proot` Termux packages
-2. Initializes pacman and installs `glibc-runner` from Termux's pacman repos (provides glibc dynamic linker at `$PREFIX/glibc/lib/ld-linux-aarch64.so.1`)
-3. Downloads official Node.js v22 LTS (linux-arm64) from nodejs.org
-4. Creates grun-style wrapper scripts: `node` becomes a bash script that runs `ld.so node.real "$@"` (no patchelf — it causes segfault on Android due to seccomp)
-5. Configures npm and verifies everything works
-6. Creates `.glibc-arch` marker file to identify the architecture
+Each script is self-contained with pre-checks and idempotent behavior (skips if already installed).
 
-### [4/11] Path Setup — `scripts/setup-paths.sh`
+### [6/8] Platform Package Install (L2) — `platforms/<platform>/install.sh`
 
-Creates the directory structure needed for Termux.
+Delegates to the platform's own install script. For OpenClaw, this:
 
-- `$PREFIX/tmp/openclaw` — OpenClaw temp directory (replaces `/tmp`)
-- `$HOME/.openclaw-android/patches` — Patch file storage location
-- `$HOME/.openclaw` — OpenClaw data directory
-- Displays how standard Linux paths (`/bin/sh`, `/usr/bin/env`, `/tmp`) map to Termux's `$PREFIX` subdirectories
+1. Sets `CPATH` for glib-2.0 headers (needed for native module builds)
+2. Installs PyYAML via pip (for `.skill` packaging)
+3. Copies `glibc-compat.js` to `~/.openclaw-android/patches/`
+4. Installs `systemctl` stub to `$PREFIX/bin/`
+5. Runs `npm install -g openclaw@latest --ignore-scripts`
+6. Applies platform-specific patches via `openclaw-apply-patches.sh`
+7. Installs `clawdhub` (skill manager) and `undici` dependency if needed
+8. Runs `openclaw update` (includes building native modules like sharp)
 
-### [5/11] Environment Variables — `scripts/setup-env.sh`
+**[6.5] Environment Variables + CLI + Marker:**
 
-Adds an environment variable block to `~/.bashrc`.
+After platform install, the orchestrator:
+- Runs `setup-env.sh` to write the `.bashrc` environment block
+- Evaluates the platform's `env.sh` for platform-specific variables
+- Writes the platform marker file (`~/.openclaw-android/.platform`)
+- Installs `oa` CLI and `oaupdate` wrapper to `$PREFIX/bin/`
+- Copies `lib.sh`, `setup-env.sh`, and the platform directory to `~/.openclaw-android/` for use by the updater and uninstaller
 
-- Wraps the block with `# >>> OpenClaw on Android >>>` / `# <<< OpenClaw on Android <<<` markers for management
-- If the block already exists, removes the old one and adds a fresh one (prevents duplicates)
-- Environment variables set:
-  - `PATH` — Prepends glibc Node.js directory (`~/.openclaw-android/node/bin`)
-  - `TMPDIR=$PREFIX/tmp` — Use Termux temp directory instead of `/tmp`
-  - `TMP`, `TEMP` — Same as `TMPDIR` (for compatibility with some tools)
-  - `CONTAINER=1` — Bypass systemd existence checks
-  - `CLAWDHUB_WORKDIR="$HOME/.openclaw/workspace"` — Direct clawdhub to install skills into OpenClaw's workspace
-  - `OA_GLIBC=1` — Marks this as a glibc-based installation
-- Creates an `ar → llvm-ar` symlink if missing
+### [7/8] Install Optional Tools (L3)
 
-The glibc architecture no longer needs `NODE_OPTIONS`, `CFLAGS`, `CXXFLAGS`, or `GYP_DEFINES` — these were required for the old Bionic architecture but are unnecessary with a standard glibc environment. `CPATH` is still set, but only for glib-2.0 headers needed by some native module builds (not the Bionic-specific headers from before).
+Installs the tools selected in Step 3:
 
-### [6/11] OpenClaw Installation & Patching — `npm install` + `patches/apply-patches.sh`
+- **Termux packages**: tmux, ttyd, dufs, android-tools — installed via `pkg install`
+- **code-server**: Browser-based VS Code IDE with Termux-specific workarounds (replace bundled node, patch argon2, handle hard link failures)
+- **OpenCode + oh-my-opencode**: AI coding assistant using proot + ld.so concatenation for Bun standalone binaries
+- **AI CLI tools**: Claude Code, Gemini CLI, Codex CLI — installed via `npm install -g`
 
-Installs OpenClaw globally and applies Termux compatibility patches.
+### [8/8] Verification — `tests/verify-install.sh`
 
-1. Copies `glibc-compat.js` to `~/.openclaw-android/patches/` — provides `os.cpus()` fallback (Android kernel returns 0) and `os.networkInterfaces()` try-catch wrapper (EACCES on Android)
-2. Installs `oa.sh` as `$PREFIX/bin/oa` and `update.sh` wrapper as `$PREFIX/bin/oaupdate`
-3. Runs `npm install -g openclaw@latest`
-4. Installs `clawdhub` (skill manager) globally via `npm install -g clawdhub`
-5. `patches/apply-patches.sh` applies patches:
-   - Copies `glibc-compat.js` to the patches directory
-   - Installs `systemctl` stub to `$PREFIX/bin/systemctl`
-   - Runs `patches/patch-paths.sh` to replace hardcoded paths in OpenClaw JS files (`/tmp`, `/bin/sh`, `/bin/bash`, `/usr/bin/env`)
-   - Logs patch results to `~/.openclaw-android/patch.log`
+Runs a two-tier verification:
 
-### [7/11] code-server Installation — `scripts/install-code-server.sh`
-
-Installs code-server, a browser-based VS Code IDE, with Termux-specific workarounds. This step is non-critical — failure prints a warning but does not abort the installer.
-
-The code-server standalone release bundles glibc-linked binaries that cannot run on Termux (Bionic libc). The installer applies three workarounds:
-
-1. **Replace bundled node** — The bundled `lib/node` binary is replaced with a symlink to Termux's native Node.js (`$PREFIX/bin/node`)
-2. **Patch argon2 native module** — The `argon2` module ships a glibc-compiled `.node` binary. Since code-server runs with `--auth none`, argon2 is never called. The module entry point is replaced with `patches/argon2-stub.js` (a JS stub that throws if called)
-3. **Handle hard link failures** — Android's filesystem does not support hard links. `tar` extraction fails for hardlinked `.node` files. The script ignores tar errors and manually recovers `.node` files from `obj.target/` directories to `Release/`
-
-Installation flow:
-- Checks if already installed (skips if so)
-- Fetches the latest version from GitHub API
-- Downloads the `linux-arm64` tarball
-- Extracts and recovers `.node` files
-- Installs to `~/.local/lib/code-server-<version>`
-- Applies the three workarounds above
-- Creates a symlink at `~/.local/bin/code-server`
-- Verifies with `code-server --version`
-
-After installation, run `code-server --auth none` to start the browser IDE.
-
-### [8/11] OpenCode + oh-my-opencode — `scripts/install-opencode.sh`
-
-Installs OpenCode and oh-my-opencode (AI coding assistant and its plugin framework). This step is non-critical — failure prints a warning but does not abort the installer.
-
-OpenCode and oh-my-opencode are Bun standalone binaries that require special handling on Android:
-
-1. **Bun uses raw syscalls** — `LD_PRELOAD` shims don't work, so `proot` is needed to intercept syscalls
-2. **Bun reads embedded JS via `/proc/self/exe`** — The `grun` approach (which makes `/proc/self/exe` point to `ld.so`) breaks the offset calculation. The ld.so concatenation method (prepending `ld.so` to the binary) preserves the correct offsets
-
-Installation flow:
-- Creates a minimal proot rootfs at `~/.openclaw-android/proot-root/`
-- Installs Bun via the official installer
-- Uses Bun to install `opencode-ai` and `oh-my-opencode` packages
-- Creates ld.so concatenation files (`$PREFIX/tmp/ld.so.opencode`, `$PREFIX/tmp/ld.so.omo`)
-- Creates proot wrapper scripts at `$PREFIX/bin/opencode` and `$PREFIX/bin/oh-my-opencode`
-- Sets up OpenCode config with oh-my-opencode plugin
-
-After installation, run `opencode` to start OpenCode.
-
-### [9/11] AI CLI Tools (Optional) — `scripts/install-ai-tools.sh`
-
-Presents an interactive checkbox UI for selecting AI CLI tools to install. Users can choose from:
-
-| Tool | Package | Provider |
-|------|---------|----------|
-| Claude Code | `@anthropic-ai/claude-code` | Anthropic |
-| Gemini CLI | `@google/gemini-cli` | Google |
-| Codex CLI | `@openai/codex` | OpenAI |
-
-Use arrow keys to navigate, Space to toggle, Enter to confirm. In non-interactive mode (e.g. `curl | bash`), this step is automatically skipped.
-
-### [10/11] Installation Verification — `tests/verify-install.sh`
-
-Checks the following items to confirm installation completed successfully.
+**Orchestrator checks (FAIL level):**
 
 | Check Item | PASS Condition |
 |------------|---------------|
 | Node.js version | `node -v` >= 22 |
 | npm | `npm` command exists |
-| openclaw | `openclaw --version` succeeds |
 | TMPDIR | Environment variable is set |
-| CONTAINER | Set to `1` |
 | OA_GLIBC | Set to `1` |
 | glibc-compat.js | File exists in `~/.openclaw-android/patches/` |
-| .glibc-arch | Marker file exists in `~/.openclaw-android/` |
-| glibc dynamic linker | `ld-linux-aarch64.so.1` exists in `$PREFIX/glibc/lib/` |
-| glibc node wrapper | Wrapper script exists at `~/.openclaw-android/node/bin/node` |
-| Directories | `~/.openclaw-android`, `~/.openclaw`, `$PREFIX/tmp` exist |
-| code-server | `code-server --version` succeeds (WARN level, non-critical) |
-| opencode | `opencode` command available (WARN level, non-critical) |
+| .glibc-arch | Marker file exists |
+| glibc dynamic linker | `ld-linux-aarch64.so.1` exists |
+| glibc node wrapper | Wrapper script at `~/.openclaw-android/node/bin/node` |
+| Directories | `~/.openclaw-android`, `$PREFIX/tmp` exist |
 | .bashrc | Contains environment variable block |
 
-All items pass → PASSED. Any failure → FAILED with reinstall instructions. WARN-level items do not cause failure.
+**Orchestrator checks (WARN level, non-critical):**
 
-### [11/11] OpenClaw Update
+| Check Item | PASS Condition |
+|------------|---------------|
+| code-server | `code-server --version` succeeds |
+| opencode | `opencode` command available |
 
-Runs `openclaw update` to ensure the latest version. On completion, displays the OpenClaw version and instructs the user to run `openclaw onboard` to start setup.
+**Platform verification** — delegates to `platforms/<platform>/verify.sh`:
+
+| Check Item | PASS Condition |
+|------------|---------------|
+| openclaw | `openclaw --version` succeeds |
+| CONTAINER | Set to `1` |
+| clawdhub | Command available |
+| ~/.openclaw | Directory exists |
+
+All FAIL-level items pass → PASSED. Any FAIL → shows reinstall instructions. WARN items do not cause failure.
 
 ## Lightweight Updater Flow — `oa --update`
 
-Running `oa --update` (or `oaupdate` for backward compatibility) downloads `update-core.sh` from GitHub and executes the following 10 steps. Unlike the full installer, it skips environment checks, path setup, and verification — focusing only on refreshing patches, environment variables, and packages.
+Running `oa --update` (or `oaupdate` for backward compatibility) downloads the latest release tarball from GitHub and executes the following 5 steps.
 
-### [1/10] Pre-flight Check
+### [1/5] Pre-flight Check
 
 Validates the minimum conditions for updating.
 
 - Checks `$PREFIX` exists (Termux environment)
-- Checks `openclaw` command exists (must already be installed)
-- Checks `curl` is available (needed to download files)
+- Checks `curl` is available
+- Detects platform from `~/.openclaw-android/.platform` marker file
 - Detects architecture: glibc (`.glibc-arch` marker) or Bionic (legacy)
 - Migrates old directory name if needed (`.openclaw-lite` → `.openclaw-android` — legacy compatibility)
 - **Phantom Process Killer** (Android 12+): Shows an informational note with a link to the [disable guide](docs/disable-phantom-process-killer.md)
 
-### [2/10] Installing New Packages
+### [2/5] Download Latest Release
 
-Installs packages that may have been added since the user's initial installation.
+Downloads the full repository tarball from GitHub and extracts to a temp directory. Validates that all required files exist:
 
-- `ttyd` — Web terminal for browser-based access. Skipped if already installed
-- `dufs` — HTTP/WebDAV file server for browser-based file management. Skipped if already installed
-- `android-tools` — ADB for disabling Phantom Process Killer. Skipped if already installed
-- `PyYAML` — YAML parser for `.skill` packaging. Skipped if already installed
+- `scripts/lib.sh`
+- `scripts/setup-env.sh`
+- `platforms/<platform>/config.env`
+- `platforms/<platform>/update.sh`
 
-All are non-critical — failures print a warning but don't stop the update.
+### [3/5] Update Core Infrastructure
 
-### [3/10] Downloading Latest Scripts
+Updates shared files used by the updater, uninstaller, and CLI:
 
-Downloads the latest patch files and scripts from GitHub.
+- Copies the latest platform directory to `~/.openclaw-android/platforms/`
+- Updates `lib.sh` and `setup-env.sh` in `~/.openclaw-android/scripts/`
+- Updates patch files (`glibc-compat.js`, `argon2-stub.js`, `spawn.h`, `systemctl`)
+- Updates `oa` CLI and `oaupdate` wrapper in `$PREFIX/bin/`
+- Updates `uninstall.sh` in `~/.openclaw-android/`
+- If Bionic architecture detected, performs automatic glibc migration
+- Runs `setup-env.sh` to refresh `.bashrc` environment block
 
-| File | Purpose | On Failure |
-|------|---------|------------|
-| `setup-env.sh` | Refresh `.bashrc` environment block | **Exit** (required) |
-| `glibc-compat.js` | Node.js runtime compatibility patch | Warning |
-| `spawn.h` | POSIX spawn stub (skipped if exists) | Warning |
-| `argon2-stub.js` | JS stub for argon2 native module (code-server) | Warning |
-| `systemctl` | systemd stub for Termux | Warning |
-| `oa.sh` | Unified CLI (`oa` command) | Warning |
-| `install-code-server.sh` | code-server install/update script | Warning |
-| `build-sharp.sh` | sharp native module build script | Warning |
-| `install-glibc-env.sh` | glibc environment installer (for migration) | Warning |
-| `install-opencode.sh` | OpenCode + oh-my-opencode installer | Warning |
+### [4/5] Update Platform
 
-Only `setup-env.sh` is required — all other failures are non-critical.
+Delegates to `platforms/<platform>/update.sh`. For OpenClaw, this:
 
-### [4/10] Updating Environment Variables
+- Installs build dependencies (`libvips`, `binutils`)
+- Updates `openclaw` npm package to latest version
+- Re-applies platform-specific patches
+- Rebuilds sharp native module if openclaw was updated
+- Updates/installs `clawdhub` (skill manager)
+- Installs `undici` for clawdhub if needed (Node.js v24+)
+- Migrates skills from `~/skills/` to `~/.openclaw/workspace/skills/` if needed
+- Installs PyYAML if missing
 
-Runs the downloaded `setup-env.sh` to refresh the `.bashrc` environment block with the latest variables. If the installation is detected as Bionic (pre-1.0.0), the updater also performs an automatic migration to the glibc architecture — installing glibc-runner, downloading Node.js, and creating wrapper scripts.
+### [5/5] Update Optional Tools
 
-### [5/10] Updating OpenClaw Package
+Updates tools that are already installed:
 
-- Installs build dependencies: `libvips` (for sharp) and `binutils` (for native builds)
-- Creates `ar → llvm-ar` symlink if missing
-- Runs `npm install -g openclaw@latest`
-- On failure, prints a warning and continues
-
-### [6/10] Building sharp (image processing)
-
-Runs `build-sharp.sh` to ensure the sharp native module is built. If sharp was already compiled successfully during Step 5's `npm install`, this step detects it and skips the rebuild.
-
-### [7/10] Updating clawdhub (skill manager)
-
-Installs or updates `clawdhub`, the CLI tool for searching and installing OpenClaw skills.
-
-- If `clawdhub` is not installed, installs it via `npm install -g clawdhub`
-- On Node.js v24+ in Termux, the `undici` package is not bundled with Node.js. If `undici` is missing, it's installed directly into clawdhub's directory
-- Migrates skills from `~/skills/` to `~/.openclaw/workspace/skills/` if installed before `CLAWDHUB_WORKDIR` was configured
-- All operations are non-critical
-
-### [8/10] Updating code-server (IDE)
-
-Runs `install-code-server.sh` in `update` mode to install or update code-server. If already installed and up to date, this step is skipped. This step is non-critical — failure prints a warning but does not stop the update.
-
-### [9/10] Updating AI CLI Tools
-
-Checks for installed AI CLI tools (Claude Code, Gemini CLI, Codex CLI) and updates them to the latest version. Compares installed vs latest npm version — skips if already up to date. Tools that are not installed are not offered for installation (use the full installer for that). All operations are non-critical.
-
-### [10/10] Updating OpenCode + oh-my-opencode
-
-Updates OpenCode and oh-my-opencode if already installed. If not installed, asks the user whether to install (defaults to skip). Requires glibc architecture — skipped on Bionic installations that failed migration. This step is non-critical.
+- **code-server**: Runs `install-code-server.sh` in update mode. Skipped if not installed
+- **OpenCode + oh-my-opencode**: Updates if installed; offers to install if not. Requires glibc architecture
+- **AI CLI tools** (Claude Code, Gemini CLI, Codex CLI): Compares installed vs latest npm version, updates if needed. Tools not installed are not offered for installation
 
 </details>
 
 ## Additional Install Options
 
-The installer includes these additional components. Some are auto-installed, while others can be selected during the installation process. You can also manage them later with `oa --update` and `oa --uninstall`.
+The installer includes these additional components. All are selected during the installation process via individual Y/n prompts. You can also manage them later with `oa --update` and `oa --uninstall`.
 
 | Tool | Description | Install |
 |------|-------------|---------|
-| [code-server](https://github.com/coder/code-server) | Browser-based VS Code IDE | Included in installer (auto-installed) |
-| [ttyd](https://github.com/tsl0922/ttyd) | Web terminal — access Termux from a browser | Included in installer (auto-installed) |
-| [dufs](https://github.com/sigoden/dufs) | File server — upload/download files via browser | Included in installer (auto-installed) |
+| [code-server](https://github.com/coder/code-server) | Browser-based VS Code IDE | Prompted during install |
+| [ttyd](https://github.com/tsl0922/ttyd) | Web terminal — access Termux from a browser | Prompted during install |
+| [dufs](https://github.com/sigoden/dufs) | File server — upload/download files via browser | Prompted during install |
 | [OpenCode](https://opencode.ai/) | AI coding assistant (TUI) | Prompted during install |
 | [oh-my-opencode](https://github.com/code-yeongyu/oh-my-opencode) | Plugin framework for OpenCode | Prompted during install (with OpenCode) |
 | [Claude Code](https://github.com/anthropics/claude-code) (Anthropic) | AI CLI tool | Prompted during install |
