@@ -99,6 +99,7 @@ mkdir -p "$PROJECT_DIR/scripts"
 mkdir -p "$PROJECT_DIR/platforms"
 cp "$SCRIPT_DIR/scripts/lib.sh" "$PROJECT_DIR/scripts/lib.sh"
 cp "$SCRIPT_DIR/scripts/setup-env.sh" "$PROJECT_DIR/scripts/setup-env.sh"
+cp "$SCRIPT_DIR/scripts/backup.sh" "$PROJECT_DIR/scripts/backup.sh"
 rm -rf "$PROJECT_DIR/platforms/$SELECTED_PLATFORM"
 cp -R "$SCRIPT_DIR/platforms/$SELECTED_PLATFORM" "$PROJECT_DIR/platforms/$SELECTED_PLATFORM"
 

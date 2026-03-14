@@ -9,7 +9,7 @@ NC='\033[0m'
 
 PROJECT_DIR="$HOME/.openclaw-android"
 PLATFORM_MARKER="$PROJECT_DIR/.platform"
-OA_VERSION="1.0.6"
+OA_VERSION="1.0.7"
 
 echo ""
 echo -e "${BOLD}========================================${NC}"
@@ -140,6 +140,9 @@ cp -r "$RELEASE_TMP/platforms/$PLATFORM" "$PROJECT_DIR/platforms/"
 
 cp "$RELEASE_TMP/scripts/lib.sh" "$PROJECT_DIR/scripts/lib.sh"
 cp "$RELEASE_TMP/scripts/setup-env.sh" "$PROJECT_DIR/scripts/setup-env.sh"
+if [ -f "$RELEASE_TMP/scripts/backup.sh" ]; then
+    cp "$RELEASE_TMP/scripts/backup.sh" "$PROJECT_DIR/scripts/backup.sh"
+fi
 
 cp "$RELEASE_TMP/patches/glibc-compat.js" "$PROJECT_DIR/patches/glibc-compat.js"
 cp "$RELEASE_TMP/patches/argon2-stub.js" "$PROJECT_DIR/patches/argon2-stub.js"

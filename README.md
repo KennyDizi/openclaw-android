@@ -186,6 +186,8 @@ After installation, the `oa` command is available for managing your installation
 | `oa --update` | Update OpenClaw and Android patches |
 | `oa --install` | Install optional tools (tmux, code-server, AI CLIs, etc.) |
 | `oa --uninstall` | Remove OpenClaw on Android |
+| `oa --backup` | Create a full backup of OpenClaw data |
+| `oa --restore` | Restore from a backup |
 | `oa --status` | Show installation status and all installed components |
 | `oa --version` | Show version |
 | `oa --help` | Show available options |
@@ -213,6 +215,21 @@ Already up-to-date components are skipped. Components you haven't installed are 
 > ```
 
 
+## Backup & Restore
+
+OpenClaw's built-in backup command (`openclaw backup create`) often fails on Android because it relies on hardlinks, which are blocked in Android's app-private storage. The `oa --backup` command works around this by using `tar` directly while maintaining full compatibility with the OpenClaw backup specification.
+
+To create a backup:
+```bash
+oa --backup
+```
+Backups are stored in `~/.openclaw-android/backup/` with a timestamped filename (e.g., `2026-03-14T00-00-00.000Z-openclaw-backup.tar.gz`). You can also specify a custom path: `oa --backup ~/my-backups/`. Each backup includes your configuration, state, workspaces, and agents.
+
+To restore from a backup:
+```bash
+oa --restore
+```
+This command lists all available backups in the default backup directory. Simply select the number of the backup you wish to restore. The tool automatically detects the platform from the backup manifest and handles the restoration to `~/.openclaw/`. Note that this will overwrite existing data, so a confirmation is required.
 ## Troubleshooting
 
 See the [Troubleshooting Guide](docs/troubleshooting.md) for detailed solutions.

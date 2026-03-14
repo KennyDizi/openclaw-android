@@ -44,9 +44,9 @@ fi
 
 CURRENT_VERSION=""
 if [ -x "$BIN_DIR/code-server" ]; then
-    # code-server --version outputs: "4.109.2 9184b645cc... with Code 1.109.2"
-    # Extract just the version number (first field)
-    CURRENT_VERSION=$("$BIN_DIR/code-server" --version 2>/dev/null | head -1 | awk '{print $1}' || true)
+    # code-server --version may include i18next ad text before the version line.
+    # Use regex to extract X.Y.Z directly, ignoring any noise lines.
+    CURRENT_VERSION=$("$BIN_DIR/code-server" --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1 || true)
 fi
 
 # ── Determine target version ──────────────────

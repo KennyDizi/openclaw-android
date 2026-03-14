@@ -6,8 +6,12 @@ PROJECT_DIR="$HOME/.openclaw-android"
 if [ -f "$HOME/.openclaw-android/scripts/lib.sh" ]; then
     # shellcheck source=/dev/null
     source "$HOME/.openclaw-android/scripts/lib.sh"
+    # shellcheck source=/dev/null
+    if [ -f "$HOME/.openclaw-android/scripts/backup.sh" ]; then
+        source "$HOME/.openclaw-android/scripts/backup.sh"
+    fi
 else
-    OA_VERSION="1.0.6"
+    OA_VERSION="1.0.7"
     RED='\033[0;31m'
     GREEN='\033[0;32m'
     YELLOW='\033[1;33m'
@@ -35,6 +39,8 @@ show_help() {
     echo "  --update       Update OpenClaw and Android patches"
     echo "  --install      Install optional tools (tmux, code-server, AI CLIs, etc.)"
     echo "  --uninstall    Remove OpenClaw on Android"
+    echo "  --backup       Create a full backup of OpenClaw data"
+    echo "  --restore      Restore from a backup"
     echo "  --status       Show installation status and all components"
     echo "  --version, -v  Show version"
     echo "  --help, -h     Show this help message"
@@ -176,6 +182,22 @@ case "${1:-}" in
         ;;
     --uninstall)
         cmd_uninstall
+        ;;
+    --backup)
+        if declare -f cmd_backup > /dev/null 2>&1; then
+            cmd_backup "${2:-}"
+        else
+            echo -e "${RED}[FAIL]${NC} backup.sh not found. Run: oa --update"
+            exit 1
+        fi
+        ;;
+    --restore)
+        if declare -f cmd_restore > /dev/null 2>&1; then
+            cmd_restore
+        else
+            echo -e "${RED}[FAIL]${NC} backup.sh not found. Run: oa --update"
+            exit 1
+        fi
         ;;
     --status)
         cmd_status

@@ -186,6 +186,8 @@ SSH 접속 및 대시보드 터널 설정은 [Termux SSH 접속 가이드](docs/
 | `oa --update` | OpenClaw 및 Android 패치 업데이트 |
 | `oa --install` | 선택적 도구 설치 (tmux, code-server, AI CLI 등) |
 | `oa --uninstall` | OpenClaw on Android 제거 |
+| `oa --backup` | OpenClaw 데이터 전체 백업 생성 |
+| `oa --restore` | 백업에서 복구 |
 | `oa --status` | 설치 상태 및 모든 설치된 컴포넌트 정보 표시 |
 | `oa --version` | 버전 표시 |
 | `oa --help` | 사용 가능한 옵션 표시 |
@@ -213,6 +215,19 @@ oa --update && source ~/.bashrc
 > ```
 
 
+## 백업 및 복구
+
+OpenClaw의 내장 백업 명령어(`openclaw backup create`)는 Android의 앱 전용 저장소에서 하드링크(`fs.link()`) 생성이 제한되어 있어 실패하는 경우가 많습니다. `oa --backup` 명령어는 `tar`를 직접 사용하여 이 문제를 해결하면서도, OpenClaw 백업 규격과 완벽하게 호환되는 아카이브를 생성합니다.
+백업 생성:
+```bash
+oa --backup
+```
+백업은 `~/.openclaw-android/backup/` 폴더에 타임스탬프가 포함된 파일명(예: `2026-03-14T00-00-00.000Z-openclaw-backup.tar.gz`)으로 저장됩니다. `oa --backup ~/my-backups/`와 같이 사용자 지정 경로를 지정할 수도 있습니다. 백업에는 설정, 상태, 워크스페이스, 에이전트 데이터가 모두 포함됩니다.
+백업에서 복구:
+```bash
+oa --restore
+```
+이 명령어를 실행하면 기본 백업 폴더에 있는 사용 가능한 백업 목록이 표시됩니다. 복구하려는 백업의 번호를 선택하면 됩니다. 도구가 백업 매니페스트에서 플랫폼을 자동으로 감지하여 `~/.openclaw/` 경로로 복구를 진행합니다. 기존 데이터를 덮어쓰게 되므로 실행 전 확인 절차가 진행됩니다.
 ## 문제 해결
 
 자세한 트러블슈팅 가이드는 [문제 해결 문서](docs/troubleshooting.ko.md)를 참고하세요.
