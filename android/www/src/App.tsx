@@ -5,7 +5,6 @@ import { useNativeEvent } from './lib/useNativeEvent'
 import { Setup } from './screens/Setup'
 import { Dashboard } from './screens/Dashboard'
 import { Settings } from './screens/Settings'
-import { SettingsTools } from './screens/SettingsTools'
 import { SettingsKeepAlive } from './screens/SettingsKeepAlive'
 import { SettingsStorage } from './screens/SettingsStorage'
 import { SettingsAbout } from './screens/SettingsAbout'
@@ -107,7 +106,6 @@ export function App() {
 function SettingsRouter() {
   const { path } = useRoute()
   if (path === '/settings') return <Settings />
-  if (path === '/settings/tools') return <SettingsTools />
   if (path === '/settings/keep-alive') return <SettingsKeepAlive />
   if (path === '/settings/storage') return <SettingsStorage />
   if (path === '/settings/about') return <SettingsAbout />

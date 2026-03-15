@@ -210,6 +210,15 @@ body {
   background: var(--border);
 }
 
+.btn-danger {
+  background: #ef4444;
+  color: #fff;
+}
+
+.btn-danger:active {
+  background: #dc2626;
+}
+
 .btn-small {
   padding: 6px 16px;
   font-size: 13px;

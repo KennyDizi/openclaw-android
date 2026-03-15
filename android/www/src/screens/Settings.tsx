@@ -11,7 +11,6 @@ interface MenuItem {
 const MENU: MenuItem[] = [
   { icon: '📱', label: 'Platforms', desc: 'Manage installed platforms', route: '/settings/platforms' },
   { icon: '🔄', label: 'Updates', desc: 'Check for updates', route: '/settings/updates', badge: false },
-  { icon: '🧰', label: 'Additional Tools', desc: 'Install extra CLI tools', route: '/settings/tools' },
   { icon: '⚡', label: 'Keep Alive', desc: 'Prevent background killing', route: '/settings/keep-alive' },
   { icon: '💾', label: 'Storage', desc: 'Manage disk usage', route: '/settings/storage' },
   { icon: 'ℹ️', label: 'About', desc: 'App info & licenses', route: '/settings/about' },

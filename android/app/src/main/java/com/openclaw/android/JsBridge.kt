@@ -264,17 +264,16 @@ class JsBridge(
             tools.add(mapOf("id" to "chromium", "name" to "chromium", "version" to "installed"))
         }
 
-        // npm global packages - check via command -v
-        val npmTools = listOf("claude-code", "gemini-cli", "codex-cli", "opencode")
-        for (id in npmTools) {
-            val binName = when (id) {
-                "claude-code" -> "claude"
-                "gemini-cli" -> "gemini"
-                "codex-cli" -> "codex"
-                else -> id
-            }
-            val result = CommandRunner.runSync("command -v $binName 2>/dev/null", env, bootstrapManager.prefixDir, timeoutMs = 5_000)
-            if (result.stdout.trim().isNotEmpty()) {
+        // npm global packages - check binary file in node bin
+        val nodeBin = "${bootstrapManager.homeDir.absolutePath}/.openclaw-android/node/bin"
+        val npmBinChecks = mapOf(
+            "claude-code" to "$nodeBin/claude",
+            "gemini-cli" to "$nodeBin/gemini",
+            "codex-cli" to "$nodeBin/codex",
+            "opencode" to "$nodeBin/opencode"
+        )
+        for ((id, path) in npmBinChecks) {
+            if (java.io.File(path).exists()) {
                 tools.add(mapOf("id" to id, "name" to id, "version" to "installed"))
             }
         }

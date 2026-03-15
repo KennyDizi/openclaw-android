@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react'
-import { useRoute } from '../lib/router'
 import { bridge } from '../lib/bridge'
 
 interface BootstrapStatus {
@@ -12,8 +11,19 @@ interface PlatformInfo {
   name: string
 }
 
+const COMMANDS = [
+  { label: 'Gateway', cmd: 'openclaw gateway', desc: 'Start the gateway' },
+  { label: 'Status', cmd: 'openclaw status', desc: 'Show gateway status' },
+  { label: 'Onboard', cmd: 'openclaw onboard', desc: 'Initial setup wizard' },
+  { label: 'Logs', cmd: 'openclaw logs --follow', desc: 'Follow live logs' },
+]
+
+const MANAGEMENT = [
+  { label: 'Update', cmd: 'oa --update', desc: 'Update OpenClaw and all components' },
+  { label: 'Install Tools', cmd: 'oa --install', desc: 'Add or remove optional tools' },
+]
+
 export function Dashboard() {
-  const { navigate } = useRoute()
   const [status, setStatus] = useState<BootstrapStatus | null>(null)
   const [platform, setPlatform] = useState<PlatformInfo | null>(null)
   const [runtimeInfo, setRuntimeInfo] = useState<Record<string, string>>({})
@@ -25,7 +35,6 @@ export function Dashboard() {
     const ap = bridge.callJson<PlatformInfo>('getActivePlatform')
     if (ap) setPlatform(ap)
 
-    // Get runtime versions
     const nodeV = bridge.callJson<{ stdout: string }>('runCommand', 'node -v 2>/dev/null')
     const gitV = bridge.callJson<{ stdout: string }>('runCommand', 'git --version 2>/dev/null')
     const ocV = bridge.callJson<{ stdout: string }>('runCommand', 'openclaw --version 2>/dev/null')
@@ -40,25 +49,12 @@ export function Dashboard() {
     refreshStatus()
   }, [])
 
-  function handleCheckStatus() {
+  function runInTerminal(cmd: string) {
     bridge.call('showTerminal')
-    bridge.call('writeToTerminal', '', 'openclaw status\n')
+    bridge.call('writeToTerminal', '', cmd)
   }
 
 
-  function handleUpdate() {
-    bridge.call('showTerminal')
-    bridge.call('writeToTerminal', '', 'oa --update\n')
-  }
-
-  function handleInstallTools() {
-    navigate('/settings/tools')
-  }
-
-  function handleStartGateway() {
-    bridge.call('showTerminal')
-    bridge.call('writeToTerminal', '', 'openclaw gateway\n')
-  }
 
   if (!status?.installed) {
     return (
@@ -86,19 +82,23 @@ export function Dashboard() {
         </div>
       </div>
 
-      {/* Gateway */}
+      {/* Commands */}
+      <div className="section-title">Commands</div>
       <div className="card">
-        <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 12 }}>
-          Gateway
-        </div>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <button className="btn btn-primary" style={{ flex: 1 }} onClick={handleStartGateway}>
-            Start Gateway
-          </button>
-          <button className="btn btn-secondary" style={{ flex: 1 }} onClick={handleCheckStatus}>
-            Check Status
-          </button>
-        </div>
+        {COMMANDS.map((item, i) => (
+          <div
+            key={item.cmd}
+            className="card-row"
+            style={{ cursor: 'pointer', borderTop: i > 0 ? '1px solid var(--border)' : 'none', padding: '10px 0' }}
+            onClick={() => runInTerminal(item.cmd)}
+          >
+            <div className="card-content">
+              <div className="card-label">{item.label}</div>
+              <div className="card-desc" style={{ fontFamily: 'monospace', fontSize: 12 }}>{item.cmd}</div>
+            </div>
+            <div className="card-chevron">›</div>
+          </div>
+        ))}
       </div>
 
       {/* Runtime info */}
@@ -114,25 +114,21 @@ export function Dashboard() {
 
       {/* Management */}
       <div className="section-title">Management</div>
-      <div className="card" style={{ cursor: 'pointer' }} onClick={handleUpdate}>
-        <div className="card-row">
-          <div className="card-icon">⬆️</div>
-          <div className="card-content">
-            <div className="card-label">Update</div>
-            <div className="card-desc">Update OpenClaw and all components</div>
+      <div className="card">
+        {MANAGEMENT.map((item, i) => (
+          <div
+            key={item.cmd}
+            className="card-row"
+            style={{ cursor: 'pointer', borderTop: i > 0 ? '1px solid var(--border)' : 'none', padding: '10px 0' }}
+            onClick={() => runInTerminal(item.cmd)}
+          >
+            <div className="card-content">
+              <div className="card-label">{item.label}</div>
+              <div className="card-desc" style={{ fontFamily: 'monospace', fontSize: 12 }}>{item.cmd}</div>
+            </div>
+            <div className="card-chevron">›</div>
           </div>
-          <div className="card-chevron">›</div>
-        </div>
-      </div>
-      <div className="card" style={{ cursor: 'pointer' }} onClick={handleInstallTools}>
-        <div className="card-row">
-          <div className="card-icon">🧩</div>
-          <div className="card-content">
-            <div className="card-label">Install Tools</div>
-            <div className="card-desc">Add or remove optional tools</div>
-          </div>
-          <div className="card-chevron">›</div>
-        </div>
+        ))}
       </div>
     </div>
   )
