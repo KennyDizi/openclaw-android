@@ -125,3 +125,75 @@ if (!fs.existsSync('/bin/sh')) {
     };
   }
 }
+
+// ─── DNS resolver fix ────────────────────────────────────────
+// glibc's getaddrinfo() reads /data/data/com.termux/files/usr/glibc/etc/resolv.conf
+// for DNS servers. This file may be missing or inaccessible:
+// - Standalone APK: runs under com.openclaw.android, can't access com.termux paths
+// - Termux: resolv-conf package may not be installed
+// Without a valid resolv.conf, dns.lookup() fails with EAI_AGAIN errors.
+//
+// Fix: Override dns.lookup to use c-ares resolver (dns.resolve) which
+// respects dns.setServers(), then fall back to getaddrinfo.
+
+try {
+  const dns = require('dns');
+
+  // Read DNS servers from our resolv.conf or use Google DNS as fallback
+  let dnsServers = ['8.8.8.8', '8.8.4.4'];
+  try {
+    const resolvConf = fs.readFileSync(
+      (process.env.PREFIX || '/data/data/com.termux/files/usr') + '/etc/resolv.conf',
+      'utf8'
+    );
+    const parsed = resolvConf.match(/^nameserver\s+(.+)$/gm);
+    if (parsed && parsed.length > 0) {
+      dnsServers = parsed.map(l => l.replace(/^nameserver\s+/, '').trim());
+    }
+  } catch {}
+
+  // Set DNS servers for c-ares resolver
+  try { dns.setServers(dnsServers); } catch {}
+
+  // Override dns.lookup to use c-ares resolver instead of getaddrinfo
+  const _originalLookup = dns.lookup;
+  dns.lookup = function lookup(hostname, options, callback) {
+    // Normalize arguments (dns.lookup has flexible signature)
+    if (typeof options === 'function') {
+      callback = options;
+      options = {};
+    }
+    const originalOptions = options;
+    const opts = typeof options === 'number' ? { family: options } : (options || {});
+    const wantAll = opts.all === true;
+    const family = opts.family || 0;
+
+    // Use c-ares resolve (respects dns.setServers, doesn't need resolv.conf)
+    const resolve = (fam, cb) => {
+      const fn = fam === 6 ? dns.resolve6 : dns.resolve4;
+      fn(hostname, cb);
+    };
+
+    const tryResolve = (fam) => {
+      resolve(fam, (err, addresses) => {
+        if (!err && addresses && addresses.length > 0) {
+          const resFam = fam === 6 ? 6 : 4;
+          if (wantAll) {
+            callback(null, addresses.map(a => ({ address: a, family: resFam })));
+          } else {
+            callback(null, addresses[0], resFam);
+          }
+        } else if (family === 0 && fam === 4) {
+          // Try IPv6 if IPv4 failed and no family preference
+          tryResolve(6);
+        } else {
+          // All c-ares attempts failed, fall back to getaddrinfo
+          _originalLookup.call(dns, hostname, originalOptions, callback);
+        }
+      });
+    };
+
+    // Start with IPv4 (or requested family)
+    tryResolve(family === 6 ? 6 : 4);
+  };
+} catch {}

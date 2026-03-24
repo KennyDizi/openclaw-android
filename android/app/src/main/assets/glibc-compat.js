@@ -126,11 +126,12 @@ if (!fs.existsSync('/bin/sh')) {
   }
 }
 
-// ─── DNS resolver fix (Android standalone APK) ──────────────
-// When running outside the com.termux package, glibc's /etc/resolv.conf
-// path is hardcoded to /data/data/com.termux/files/usr/glibc/etc/resolv.conf
-// which is inaccessible from our app. dns.lookup() uses getaddrinfo() which
-// reads this file, causing EAI_AGAIN errors.
+// ─── DNS resolver fix ────────────────────────────────────────
+// glibc's getaddrinfo() reads /data/data/com.termux/files/usr/glibc/etc/resolv.conf
+// for DNS servers. This file may be missing or inaccessible:
+// - Standalone APK: runs under com.openclaw.android, can't access com.termux paths
+// - Termux: resolv-conf package may not be installed
+// Without a valid resolv.conf, dns.lookup() fails with EAI_AGAIN errors.
 //
 // Fix: Override dns.lookup to use c-ares resolver (dns.resolve) which
 // respects dns.setServers(), then fall back to getaddrinfo.
