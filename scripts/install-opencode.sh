@@ -159,6 +159,11 @@ echo "  (Downloading package — this may take a few minutes)"
 "$BUN_WRAPPER" install -g opencode-ai 2>&1 || true
 echo -e "${GREEN}[OK]${NC}   opencode-ai package install attempted"
 
+# Remove bun's global shim — it tries to spawnSync the native binary directly,
+# which fails on Termux (missing /lib/ld-linux-aarch64.so.1).
+# Our proot wrapper at $PREFIX/bin/opencode will be used instead.
+rm -f "$HOME/.bun/bin/opencode"
+
 # Find the OpenCode binary
 OPENCODE_BIN=""
 for pattern in \
@@ -179,7 +184,8 @@ fi
 echo -e "${GREEN}[OK]${NC}   OpenCode binary found: $OPENCODE_BIN"
 
 # Create ld.so concatenation
-LDSO_OPENCODE="$PREFIX/tmp/ld.so.opencode"
+mkdir -p "$OPENCLAW_DIR/bin"
+LDSO_OPENCODE="$OPENCLAW_DIR/bin/ld.so.opencode"
 create_ldso_concat "$OPENCODE_BIN" "$LDSO_OPENCODE" "OpenCode" || {
     rm -f "$BUN_WRAPPER"
     fail_warn "Failed to create OpenCode ld.so concatenation"

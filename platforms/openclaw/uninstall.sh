@@ -46,7 +46,9 @@ if [ "$OPENCODE_INSTALLED" = true ]; then
             pkill -f "ld.so.opencode" || true
             echo -e "${GREEN}[OK]${NC}   Stopped running OpenCode"
         fi
-        [ -f "$PREFIX/tmp/ld.so.opencode" ] && rm -f "$PREFIX/tmp/ld.so.opencode" && echo -e "${GREEN}[OK]${NC}   Removed ld.so.opencode"
+        [ -f "$HOME/.openclaw-android/bin/ld.so.opencode" ] && rm -f "$HOME/.openclaw-android/bin/ld.so.opencode" && echo -e "${GREEN}[OK]${NC}   Removed ld.so.opencode"
+        # Clean up legacy tmp location
+        [ -f "$PREFIX/tmp/ld.so.opencode" ] && rm -f "$PREFIX/tmp/ld.so.opencode"
         [ -f "$PREFIX/bin/opencode" ] && rm -f "$PREFIX/bin/opencode" && echo -e "${GREEN}[OK]${NC}   Removed opencode wrapper"
         [ -d "$HOME/.config/opencode" ] && rm -rf "$HOME/.config/opencode" && echo -e "${GREEN}[OK]${NC}   Removed ~/.config/opencode"
     else
