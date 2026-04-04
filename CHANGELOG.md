@@ -13,6 +13,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 - Fix verify-compat.sh checking wrong wrapper paths — tests now verify behavior (executable script, not ELF) instead of hardcoded paths
 - Fix `install.sh` session PATH missing `$BIN_DIR` — node/npm commands could fail to resolve after Step 5
 - Fix README (en/ko/zh) documenting wrong wrapper path (`node/bin/node` → `bin/node`)
+- Fix npm wrapper writing through symlink and corrupting `openclaw.mjs` — npm creates symlink `$PREFIX/bin/openclaw` → `openclaw.mjs`, our shim writer followed it and destroyed the original file ([#89](https://github.com/AidanPark/openclaw-android/issues/89))
 
 ## [Script v1.0.17] - 2026-04-03
 

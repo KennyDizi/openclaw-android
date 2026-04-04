@@ -247,6 +247,7 @@ case "\$*" in *-g*openclaw*|*--global*openclaw*|*openclaw*-g*|*openclaw*--global
     _oc_bin="$PREFIX/bin/openclaw"
     _oc_mjs="$PREFIX/lib/node_modules/openclaw/openclaw.mjs"
     if [ -f "\$_oc_mjs" ]; then
+        [ -L "\$_oc_bin" ] && rm -f "\$_oc_bin"
         printf '#!$PREFIX/bin/bash\nexec "$BIN_DIR/node" "%s" "\$@"\n' "\$_oc_mjs" > "\$_oc_bin"
         chmod +x "\$_oc_bin"
     fi
@@ -325,6 +326,7 @@ case "\$*" in *-g*openclaw*|*--global*openclaw*|*openclaw*-g*|*openclaw*--global
     _oc_bin="$PREFIX/bin/openclaw"
     _oc_mjs="$PREFIX/lib/node_modules/openclaw/openclaw.mjs"
     if [ -f "\$_oc_mjs" ]; then
+        [ -L "\$_oc_bin" ] && rm -f "\$_oc_bin"
         printf '#!$PREFIX/bin/bash\nexec "$BIN_DIR/node" "%s" "\$@"\n' "\$_oc_mjs" > "\$_oc_bin"
         chmod +x "\$_oc_bin"
     fi
