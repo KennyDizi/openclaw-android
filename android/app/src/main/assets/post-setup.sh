@@ -437,11 +437,12 @@ else
     echo -e "  ${GREEN}✓${NC} OpenClaw $OC_VER"
 fi
 
-# Fix native bindings broken by --ignore-scripts
+# Reinstall dependencies without --ignore-scripts to restore optional/channel
+# deps (e.g. @buape/carbon, grammy) that were skipped above.
 OPENCLAW_DIR="$(npm root -g)/openclaw"
-if [ -d "$OPENCLAW_DIR/node_modules/@snazzah/davey" ]; then
-    echo "  Installing native bindings for @snazzah/davey..."
-    (cd "$OPENCLAW_DIR" && npm install @snazzah/davey --no-fund --no-audit --no-save 2>/dev/null) || true
+if [ -d "$OPENCLAW_DIR" ]; then
+    echo "  Restoring optional dependencies..."
+    (cd "$OPENCLAW_DIR" && npm install --no-fund --no-audit 2>/dev/null) || true
 fi
 
 # Install clawdhub (skill manager)

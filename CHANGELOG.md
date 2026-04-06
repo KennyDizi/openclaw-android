@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [Script v1.0.19] - 2026-04-06
+
+### Fixed
+
+- Fix missing channel dependencies after `--ignore-scripts` install — reinstall deps inside openclaw package dir to restore optional modules like `@buape/carbon`, `grammy` ([#92](https://github.com/AidanPark/openclaw-android/issues/92))
+
 ## [Script v1.0.18] - 2026-04-04
 
 ### Fixed
