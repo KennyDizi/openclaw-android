@@ -64,7 +64,7 @@ _detect_backup_platform() {
 
     # Extract manifest.json from the tarball without unpacking everything
     local manifest
-    manifest=$(tar -xzf "$archive" --wildcards "*/manifest.json" -O 2>/dev/null | head -c 65536)
+    manifest=$(gzip -dc "$archive" 2>/dev/null | tar -xf - --wildcards "*/manifest.json" -O 2>/dev/null | head -c 65536)
 
     if [ -z "$manifest" ]; then
         echo ""
@@ -229,9 +229,11 @@ $manifest_assets_json
 }
 MANIFEST_EOF
 
-    # Pack the archive using tar (no hardlinks — Android safe)
+    # Pack the archive using tar + gzip pipe (Android safe)
+    # Piping through gzip explicitly ensures the shell resolves gzip via PATH,
+    # avoiding "gzip: Cannot exec" errors when tar can't find gzip internally.
     echo -e "Packing archive…"
-    if ! tar -czf "$archive_path" -C "$tmpdir" "$archive_root"; then
+    if ! tar -cf - -C "$tmpdir" "$archive_root" | gzip > "$archive_path"; then
         echo -e "${RED}[FAIL]${NC} Failed to create archive: $archive_path"
         exit 1
     fi
@@ -248,7 +250,7 @@ MANIFEST_EOF
     else
         # Fallback: tar -tzf structural check
         local file_count
-        file_count=$(tar -tzf "$archive_path" 2>/dev/null | wc -l)
+        file_count=$(gzip -dc "$archive_path" 2>/dev/null | tar -tf - 2>/dev/null | wc -l)
         if [ "$file_count" -gt 0 ]; then
             echo -e "${GREEN}[OK]${NC}   Integrity check passed (tar structural, $file_count entries)"
         else
@@ -372,7 +374,7 @@ cmd_restore() {
 
     # Get archiveRoot from manifest
     local archive_root
-    archive_root=$(tar -xzf "$selected" --wildcards "*/manifest.json" -O 2>/dev/null \
+    archive_root=$(gzip -dc "$selected" 2>/dev/null | tar -xf - --wildcards "*/manifest.json" -O 2>/dev/null \
         | grep '"archiveRoot"' \
         | sed 's/.*"archiveRoot"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/')
 
@@ -384,7 +386,7 @@ cmd_restore() {
     mkdir -p "$restore_root"
 
     # Extract payload files, stripping <archiveRoot>/payload/ prefix
-    if ! tar -xzf "$selected" \
+    if ! gzip -dc "$selected" 2>/dev/null | tar -xf - \
         --strip-components=2 \
         --exclude="${archive_root}/manifest.json" \
         -C "$restore_root" \
