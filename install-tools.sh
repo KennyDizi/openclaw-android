@@ -15,7 +15,7 @@ NC='\033[0m'
 
 PROJECT_DIR="$HOME/.openclaw-android"
 PLATFORM_MARKER="$PROJECT_DIR/.platform"
-OA_VERSION="1.0.24"
+OA_VERSION="1.0.25"
 REPO_TARBALL="https://github.com/AidanPark/openclaw-android/archive/refs/heads/main.tar.gz"
 
 echo ""
@@ -228,6 +228,8 @@ fi
 if [ "$INSTALL_CLAUDE_CODE" = true ]; then echo "Installing Claude Code..."; if npm install -g @anthropic-ai/claude-code; then echo -e "${GREEN}[OK]${NC}   Claude Code installed"; fi; fi
 if [ "$INSTALL_GEMINI_CLI" = true ]; then echo "Installing Gemini CLI..."; if npm install -g @google/gemini-cli; then echo -e "${GREEN}[OK]${NC}   Gemini CLI installed"; fi; fi
 if [ "$INSTALL_CODEX_CLI" = true ]; then echo "Installing Codex CLI..."; if npm install -g @openai/codex; then echo -e "${GREEN}[OK]${NC}   Codex CLI installed"; fi; fi
+
+command -v fix_npm_global_shebangs >/dev/null 2>&1 && fix_npm_global_shebangs || true
 
 echo ""
 echo -e "${GREEN}${BOLD}  Installation Complete!${NC}"

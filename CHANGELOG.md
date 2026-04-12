@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [Script v1.0.25] - 2026-04-11
+
+### Fixed
+
+- Fix `bad interpreter: Permission denied` when running npm globally-installed CLI tools (codex, claude, clawdhub, etc.) directly from shell on Android/Termux. The root cause is `#!/usr/bin/env node` shebang in `.js` entry points, which Android cannot resolve. Two-layer fix: (1) npm wrapper hook automatically rewrites shebangs after every `npm install -g`, (2) defense-in-depth calls in install/update scripts catch anything Layer 1 missed.
+
 ## [Script v1.0.24] - 2026-04-11
 
 ### Fixed

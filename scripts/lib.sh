@@ -66,12 +66,24 @@ resolve_npm_registry() {
     return 1
 }
 
+# Fix shebangs in npm globally-installed CLI entry points
+# Rewrites #!/usr/bin/env node → #!$BIN_DIR/node so CLIs work on Android
+fix_npm_global_shebangs() {
+    local _js
+    for _js in "$PREFIX/lib/node_modules"/*/bin/*.js \
+               "$PREFIX/lib/node_modules"/@*/*/bin/*.js; do
+        [ -f "$_js" ] || continue
+        head -1 "$_js" | grep -q '^#!/usr/bin/env node$' || continue
+        sed -i "1s|#!/usr/bin/env node|#!$BIN_DIR/node|" "$_js"
+    done
+}
+
 # Initialize REPO_BASE
 REPO_BASE="$REPO_BASE_ORIGIN"
 
 BASHRC_MARKER_START="# >>> OpenClaw on Android >>>"
 BASHRC_MARKER_END="# <<< OpenClaw on Android <<<"
-OA_VERSION="1.0.24"
+OA_VERSION="1.0.25"
 
 # ── Platform detection ──
 # 1. Explicit marker file (new install and after first update)

@@ -124,6 +124,8 @@ if [ "$INSTALL_CLAUDE_CODE" = true ]; then npm install -g @anthropic-ai/claude-c
 if [ "$INSTALL_GEMINI_CLI" = true ]; then npm install -g @google/gemini-cli; fi
 if [ "$INSTALL_CODEX_CLI" = true ]; then npm install -g @openai/codex; fi
 
+command -v fix_npm_global_shebangs >/dev/null 2>&1 && fix_npm_global_shebangs || true
+
 step 8 "Verification"
 bash "$SCRIPT_DIR/tests/verify-install.sh"
 

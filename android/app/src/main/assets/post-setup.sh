@@ -303,6 +303,16 @@ case "\$*" in *-g*openclaw*|*--global*openclaw*|*openclaw*-g*|*openclaw*--global
     fi
     ;;
 esac
+# Fix shebangs in npm global CLI entry points after global install
+case "\$*" in *-g*|*--global*)
+    for _js in $PREFIX/lib/node_modules/*/bin/*.js \
+               $PREFIX/lib/node_modules/@*/*/bin/*.js; do
+        [ -f "\$_js" ] || continue
+        head -1 "\$_js" | grep -q '^#!/usr/bin/env node\$' || continue
+        sed -i "1s|#!/usr/bin/env node|#!$BIN_DIR/node|" "\$_js"
+    done
+    ;;
+esac
 exit \$_npm_exit
 NPMWRAP
         chmod +x "$BIN_DIR/npm"
@@ -380,6 +390,16 @@ case "\$*" in *-g*openclaw*|*--global*openclaw*|*openclaw*-g*|*openclaw*--global
         printf '#!$PREFIX/bin/bash\nexec "$BIN_DIR/node" "%s" "\$@"\n' "\$_oc_mjs" > "\$_oc_bin"
         chmod +x "\$_oc_bin"
     fi
+    ;;
+esac
+# Fix shebangs in npm global CLI entry points after global install
+case "\$*" in *-g*|*--global*)
+    for _js in $PREFIX/lib/node_modules/*/bin/*.js \
+               $PREFIX/lib/node_modules/@*/*/bin/*.js; do
+        [ -f "\$_js" ] || continue
+        head -1 "\$_js" | grep -q '^#!/usr/bin/env node\$' || continue
+        sed -i "1s|#!/usr/bin/env node|#!$BIN_DIR/node|" "\$_js"
+    done
     ;;
 esac
 exit \$_npm_exit
@@ -683,6 +703,14 @@ PWENV
             npm install -g @openai/codex 2>&1 || true
             echo -e "  ${GREEN}✓${NC} Codex CLI"
         }
+
+        # Fix shebangs in npm global CLIs (kept in sync with scripts/lib.sh fix_npm_global_shebangs())
+        for _js in "$PREFIX/lib/node_modules"/*/bin/*.js \
+                   "$PREFIX/lib/node_modules"/@*/*/bin/*.js; do
+            [ -f "$_js" ] || continue
+            head -1 "$_js" | grep -q '^#!/usr/bin/env node$' || continue
+            sed -i "1s|#!/usr/bin/env node|#!$BIN_DIR/node|" "$_js"
+        done
     else
         echo -e "▸ ${YELLOW}[7/7]${NC} No optional tools selected"
     fi

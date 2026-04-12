@@ -112,6 +112,16 @@ case "$*" in *-g*openclaw*|*--global*openclaw*|*openclaw*-g*|*openclaw*--global*
     fi
     ;;
 esac
+# Fix shebangs in npm global CLI entry points after global install
+case "$*" in *-g*|*--global*)
+    for _js in __PREFIX__/lib/node_modules/*/bin/*.js \
+               __PREFIX__/lib/node_modules/@*/*/bin/*.js; do
+        [ -f "$_js" ] || continue
+        head -1 "$_js" | grep -q '^#!/usr/bin/env node$' || continue
+        sed -i "1s|#!/usr/bin/env node|#!__BIN_DIR__/node|" "$_js"
+    done
+    ;;
+esac
 exit $_npm_exit
 NPMWRAP
                 sed -i "s|__PREFIX__|$PREFIX|g; s|__BIN_DIR__|$BIN_DIR|g; s|__NODE_DIR__|$NODE_DIR|g" "$BIN_DIR/npm"
@@ -244,6 +254,16 @@ case "$*" in *-g*openclaw*|*--global*openclaw*|*openclaw*-g*|*openclaw*--global*
         printf '#!__PREFIX__/bin/bash\nexec "__BIN_DIR__/node" "%s" "$@"\n' "$_oc_mjs" > "$_oc_bin"
         chmod +x "$_oc_bin"
     fi
+    ;;
+esac
+# Fix shebangs in npm global CLI entry points after global install
+case "$*" in *-g*|*--global*)
+    for _js in __PREFIX__/lib/node_modules/*/bin/*.js \
+               __PREFIX__/lib/node_modules/@*/*/bin/*.js; do
+        [ -f "$_js" ] || continue
+        head -1 "$_js" | grep -q '^#!/usr/bin/env node$' || continue
+        sed -i "1s|#!/usr/bin/env node|#!__BIN_DIR__/node|" "$_js"
+    done
     ;;
 esac
 exit $_npm_exit

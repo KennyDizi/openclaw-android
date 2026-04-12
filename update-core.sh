@@ -9,7 +9,7 @@ NC='\033[0m'
 
 PROJECT_DIR="$HOME/.openclaw-android"
 PLATFORM_MARKER="$PROJECT_DIR/.platform"
-OA_VERSION="1.0.24"
+OA_VERSION="1.0.25"
 
 echo ""
 echo -e "${BOLD}========================================${NC}"
@@ -315,6 +315,8 @@ update_ai_tool "codex" "@openai/codex" "Codex CLI" && AI_FOUND=true
 if [ "$AI_FOUND" = false ]; then
     echo -e "${YELLOW}[SKIP]${NC} No AI CLI tools installed"
 fi
+
+command -v fix_npm_global_shebangs >/dev/null 2>&1 && fix_npm_global_shebangs || true
 
 echo ""
 echo -e "${GREEN}${BOLD}  Update Complete!${NC}"
